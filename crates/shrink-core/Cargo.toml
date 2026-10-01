@@ -1,0 +1,17 @@
+[package]
+name = "shrink-core"
+description = "Pure-Rust LFC shrinkage: DESeq2 normal prior, apeglm 1.32.0, ashr 2.2-63 with mixsqp 0.3-54."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+rnum = { workspace = true }
+deseq2-core = { path = "../deseq2-core" }
+
+[dev-dependencies]
+csv = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

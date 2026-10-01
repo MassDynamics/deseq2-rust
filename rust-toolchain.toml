@@ -1,0 +1,6 @@
+# The compiler the gate and the goldens were verified with. Keep equal to RUST_VERSION in the
+# Dockerfile.
+[toolchain]
+channel = "1.95.0"
+profile = "minimal"
+components = ["clippy", "rustfmt"]

@@ -1,0 +1,17 @@
+[package]
+name = "deseq2-core"
+description = "Pure-Rust port of DESeq2 1.50.2 as used by Mass Dynamics (size factors, dispersions, NB GLM Wald/LRT, Cook's, independent filtering)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+rnum = { workspace = true }
+edger-core = { workspace = true }
+
+[dev-dependencies]
+csv = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
