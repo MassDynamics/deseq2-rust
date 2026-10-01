@@ -1,0 +1,9 @@
+# Apple's Xcode toolchain refuses to link until `sudo xcodebuild -license` is accepted for the
+# installed Xcode. Pointing the toolchain at the Command Line Tools sidesteps that prompt and
+# is what every cargo/maturin invocation in this repo relies on (verified 2026-09-25).
+[env]
+DEVELOPER_DIR = "/Library/Developer/CommandLineTools"
+
+# pyo3 extension modules resolve Python symbols at load time (what maturin passes).
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
