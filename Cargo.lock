@@ -358,7 +358,6 @@ name = "shrink-core"
 version = "0.1.0"
 dependencies = [
  "csv",
- "deseq2-core",
  "rnum",
  "serde",
  "serde_json",

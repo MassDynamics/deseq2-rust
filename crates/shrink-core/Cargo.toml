@@ -9,7 +9,6 @@ license.workspace = true
 [dependencies]
 thiserror = { workspace = true }
 rnum = { workspace = true }
-deseq2-core = { path = "../deseq2-core" }
 
 [dev-dependencies]
 csv = "1"
