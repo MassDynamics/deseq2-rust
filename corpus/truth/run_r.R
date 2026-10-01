@@ -118,7 +118,7 @@ dump_deseq2_base <- function(dds, d) {
   rep <- if (!is.null(mc$replace)) mc$replace else rep(FALSE, nrow(dds))
   wr(data.table(id = rownames(dds), baseMean = mc$baseMean, dispGeneEst = mc$dispGeneEst,
                 dispFit = mc$dispFit, dispersion = mc$dispersion, dispOutlier = mc$dispOutlier,
-                betaConv = if (!is.null(mc$betaConv)) mc$betaConv else mc$fullBetaConv, maxCooks = maxc, replace = rep, coefs, ses),
+                betaConv = if (!is.null(mc$betaConv)) mc$betaConv else mc$fullBetaConv, betaIter = if (!is.null(mc$betaIter)) mc$betaIter else NA, maxCooks = maxc, replace = rep, coefs, ses),
      file.path(d, "genes.csv"))
   wr(data.table(id = rownames(dds), as.data.table(cooks)), file.path(d, "cooks.csv"))
   if ("replaceCounts" %in% assayNames(dds) && any(rep %in% TRUE)) {

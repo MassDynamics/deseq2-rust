@@ -1,0 +1,86 @@
+"""Run the Rust engines (edge_rust, deseq2_rust) on the truth corpus.
+
+Writes <scenario>/rust_<engine>.csv with the production table, the same shape as r_<engine>.csv:
+rust_edger, rust_deseq2 (or rust_deseq2_anova), rust_deseq2_{normal,apeglm,ashr} on the main
+scenarios. Null reps get edger + deseq2 only, as for R. Run with the Python that has both packages
+installed (e.g. `uv run --with <wheel> ...`); check_truth.py --engine rust calls this file with
+its own interpreter.
+
+Inputs follow the engine contract run(counts, sample_info, comparisons, params) -> DataFrame.
+`to_inputs` is the only place that knows the shapes, so adapt it there if the contract moves.
+"""
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+MAIN = {"s2x3", "s2x4", "s3x3", "s2x7_outliers", "s2x3_batch", "s2x4_covariate"}
+SHRINKS = ["normal", "apeglm", "ashr"]
+
+
+def to_inputs(d: Path, de_method: str, shrink: str = "none"):
+    counts = pd.read_csv(d / "counts.csv", index_col=0)
+    counts.index = counts.index.rename("GroupId")
+    si = pd.read_csv(d / "sample_info.csv")
+    comps = pd.read_csv(d / "comparisons.csv")
+    p = json.loads((d / "params.json").read_text())
+    params = {
+        "condition_col": p["condition_col"],
+        "control_cols": [{"Column": c, "Type": "numeric" if c == "covariate" else "categorical"}
+                         for c in p.get("control_cols", [])],
+        "mode": p["mode"],
+        "comparison_type": "custom",
+        "custom_comparisons": comps[["left", "right"]].to_dict("records"),
+        "de_method": de_method,
+        "edger_norm_method": p["edger_norm_method"],
+        "deseq2_alpha": p["deseq2_alpha"],
+        "deseq2_lfc_shrinkage": shrink,
+        "apeglm_seed": p["apeglm_seed"],
+    }
+    return counts, si, comps, params
+
+
+def write(df: pd.DataFrame, path: Path):
+    df = df.copy()
+    if "GroupId" not in df.columns:
+        df = df.reset_index().rename(columns={"index": "GroupId"})
+    df["GroupId"] = df["GroupId"].astype(int)
+    df.sort_values("GroupId").to_csv(path, index=False)
+
+
+def run_scenario(d: Path, edge_rust, deseq2_rust):
+    p = json.loads((d / "params.json").read_text())
+    anova = p["mode"] == "anova"
+    if not anova:
+        write(edge_rust.run(*to_inputs(d, "edgeR")), d / "rust_edger.csv")
+    write(deseq2_rust.run(*to_inputs(d, "DESeq2")), d / ("rust_deseq2_anova.csv" if anova else "rust_deseq2.csv"))
+    if d.name in MAIN or d.name.startswith("mix_"):
+        for s in SHRINKS:
+            write(deseq2_rust.run(*to_inputs(d, "DESeq2", s)), d / f"rust_deseq2_{s}.csv")
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--corpus", type=Path, default=Path.home() / "wd/md-count-truth-corpus")
+    ap.add_argument("names", nargs="*")
+    a = ap.parse_args(argv)
+    import deseq2_rust
+    import edge_rust
+
+    names = a.names or list(json.loads((a.corpus / "index.json").read_text()))
+    bad = 0
+    for n in names:
+        try:
+            run_scenario(a.corpus / n, edge_rust, deseq2_rust)
+            print(n, "ok", flush=True)
+        except Exception as e:  # report and continue; the exit code carries the failure
+            bad += 1
+            print(n, "FAIL", repr(e), flush=True)
+    print(f"rust: {len(names) - bad} / {len(names)} scenarios ok")
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

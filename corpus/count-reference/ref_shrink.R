@@ -18,6 +18,22 @@
 # Every replayed intermediate is checked against the package function and the final
 # shrunk lfc / SE against lfcShrink() itself.
 
+
+# Every shrink dump is written at 17 significant digits (fwrite's default is 15),
+# so the Rust port reads its inputs bit-exactly and gaps below 1e-15 are visible.
+fw17 <- function(dt, path, ...) {
+  dt <- as.data.table(dt)
+  for (cc in names(dt)) if (is.double(dt[[cc]]))
+    set(dt, j = cc, value = ifelse(is.na(dt[[cc]]), NA_character_, sprintf("%.17g", dt[[cc]])))
+  fwrite(dt, path, na = "NA", quote = FALSE)
+}
+vec17 <- function(d, name, ids, ...) fw17(data.table(id = ids, ...), file.path(d$dir, paste0(name, ".csv")))
+mat17 <- function(d, name, m, ids = rownames(m)) {
+  dt <- as.data.table(m)
+  if (!is.null(ids)) dt <- cbind(data.table(id = ids), dt)
+  fw17(dt, file.path(d$dir, paste0(name, ".csv")))
+}
+
 SHRINK_TRACE_N <- 40L  # genes per comparison whose full optimizer path is dumped
 
 Rcpp::sourceCpp(file.path(here, "nbinom_trace.cpp"), cacheDir = file.path(tempdir(), "nbt"))
@@ -44,8 +60,8 @@ ref_shrink <- function(inp, d) {
   if (identical(inp$mode, "anova") || shrink == "none") return(invisible(NULL))
   dds <- shrink_inputs_dds(inp)
   ids <- rownames(dds)
-  d$matrix("shrink_counts", counts(dds))
-  d$vec("shrink_size_factors", colnames(dds), size_factor = unname(sizeFactors(dds)))
+  mat17(d, "shrink_counts", counts(dds))
+  vec17(d, "shrink_size_factors", colnames(dds), size_factor = unname(sizeFactors(dds)))
   enc <- inp$encoded; cdf <- inp$comparisonDF
   out <- list()
   for (i in seq_len(nrow(enc))) {
@@ -60,8 +76,8 @@ ref_shrink <- function(inp, d) {
     coefNum <- which(resultsNames(ddsShrink) == coefName)
     res <- results(ddsShrink, name = coefName)
     X <- model.matrix(design(ddsShrink), data = colData(ddsShrink))
-    d$matrix(paste0(tag, "_design"), X, ids = rownames(X))
-    d$vec(paste0(tag, "_input"), ids, dispersion = unname(dispersions(ddsShrink)),
+    mat17(d, paste0(tag, "_design"), X, ids = rownames(X))
+    vec17(d, paste0(tag, "_input"), ids, dispersion = unname(dispersions(ddsShrink)),
           lfc_mle = res$log2FoldChange, lfc_se = res$lfcSE)
     d$scalar(paste0(tag, "_coef_index"), coefNum)
     d$scalar(paste0(tag, "_coef_name"), coefName)
@@ -153,7 +169,7 @@ ref_apeglm <- function(d, tag, dds, X, res, coef, s) {
     tdt$f <- tr[, p + 2]
     for (j in seq_len(p)) tdt[[paste0("grad", j)]] <- tr[, p + 2 + j]
     tdt[["eval"]] <- ave(seq_along(tdt$id), tdt$id, FUN = seq_along)
-    fwrite(tdt, file.path(d$dir, paste0(tag, "_apeglm_path_fit", k, ".csv")))
+    fw17(tdt, file.path(d$dir, paste0(tag, "_apeglm_path_fit", k, ".csv")))
   }
 
   # apeglm() row loop with nbinomCR, written out.
@@ -238,7 +254,7 @@ ref_apeglm <- function(d, tag, dds, X, res, coef, s) {
   pre$delta <- NA_real_; pre$delta[nonzero] <- delta
   pre$prefit_conv <- conv0
   pre$traced <- FALSE; pre$traced[nonzero] <- traced
-  fwrite(pre, file.path(d$dir, paste0(tag, "_apeglm_prefit.csv")), na = "NA")
+  fw17(pre, file.path(d$dir, paste0(tag, "_apeglm_prefit.csv")), na = "NA")
 
   rp <- data.table(id = ids, nan_prefit = vapply(rows, function(r) r$nan_prefit, NA),
                    cnst2 = vapply(rows, `[[`, 0, "cnst2"), fallback = vapply(rows, function(r) r$fallback, NA),
@@ -250,7 +266,7 @@ ref_apeglm <- function(d, tag, dds, X, res, coef, s) {
   for (a in seq_len(p)) for (b in seq_len(p)) rp[[sprintf("hess_%d_%d", a, b)]] <- hm[, (b - 1) * p + a]
   for (a in seq_len(p)) rp[[sprintf("var_est_%d", a)]] <- ve[, a]
   for (a in seq_len(p)) for (b in seq_len(p)) rp[[sprintf("final_hess_%d_%d", a, b)]] <- fh[, (b - 1) * p + a]
-  fwrite(rp, file.path(d$dir, paste0(tag, "_apeglm_rowpass.csv")), na = "NA")
+  fw17(rp, file.path(d$dir, paste0(tag, "_apeglm_rowpass.csv")), na = "NA")
 
   fo <- data.table(id = ids)
   for (j in seq_len(p)) fo[[paste0("map", j)]] <- map[, j]
@@ -265,7 +281,7 @@ ref_apeglm <- function(d, tag, dds, X, res, coef, s) {
   for (i in which(nonzero)) if (!any(is.na(map[i, ])))
     gr[i, ] <- apeglm:::nbinomGr(map[i, ], X, Y[i, ], 1 / disps[i], weights[i, ], offset[i, ], sigma, Sc, no.shrink, shrink, 0)
   for (j in seq_len(p)) fo[[paste0("grad_at_map", j)]] <- gr[, j]
-  fwrite(fo, file.path(d$dir, paste0(tag, "_apeglm_final.csv")), na = "NA")
+  fw17(fo, file.path(d$dir, paste0(tag, "_apeglm_final.csv")), na = "NA")
   d$scalar(paste0(tag, "_apeglm_n_fallback"), sum(rp$fallback, na.rm = TRUE))
   d$scalar(paste0(tag, "_apeglm_n_conv_flagged"), sum(conv != 0))
   d$scalar(paste0(tag, "_apeglm_n_nan_prefit"), sum(rp$nan_prefit, na.rm = TRUE))
@@ -287,10 +303,10 @@ ref_ashr <- function(d, tag, res, s) {
   nzc <- apply(Lmat, 2, max) > 0
   Lm <- Lmat[, nzc, drop = FALSE]
   nn <- nrow(Lm); m <- ncol(Lm)
-  d$vec(paste0(tag, "_ashr_data"), ids, x = data$x, s = data$s, excluded = excl)
-  fwrite(data.table(mixsd = mixsd, nonzero_col = nzc), file.path(d$dir, paste0(tag, "_ashr_grid.csv")))
-  d$matrix(paste0(tag, "_ashr_L"), Lm, ids = ids[!excl])
-  d$vec(paste0(tag, "_ashr_lnorm"), ids[!excl], lnorm = lnorm)
+  vec17(d, paste0(tag, "_ashr_data"), ids, x = data$x, s = data$s, excluded = excl)
+  fw17(data.table(mixsd = mixsd, nonzero_col = nzc), file.path(d$dir, paste0(tag, "_ashr_grid.csv")))
+  mat17(d, paste0(tag, "_ashr_L"), Lm, ids = ids[!excl])
+  vec17(d, paste0(tag, "_ashr_lnorm"), ids[!excl], lnorm = lnorm)
 
   # mixsqp() preprocessing and its EM phase, written out.
   w <- rep(1, nn) / nn; x0 <- rep(1, m) / m
@@ -306,13 +322,13 @@ ref_ashr <- function(d, tag, res, s) {
   d$scalar(paste0(tag, "_ashr_mixsqp"), list(n = nn, m = m, use_svd = use_svd,
            tsvd_null = is.null(ts), status = sq$status, value = sq$value,
            niter = nrow(sq$progress), eps = eps[1]))
-  fwrite(data.table(sv = sv), file.path(d$dir, paste0(tag, "_ashr_singular_values.csv")))
-  fwrite(data.table(em_x = drop(em$x), x = drop(sq$x), grad = drop(sq$grad)),
+  fw17(data.table(sv = sv), file.path(d$dir, paste0(tag, "_ashr_singular_values.csv")))
+  fw17(data.table(em_x = drop(em$x), x = drop(sq$x), grad = drop(sq$grad)),
          file.path(d$dir, paste0(tag, "_ashr_mixsqp_x.csv")))
-  fwrite(data.table(em_objective = drop(em$objective), em_max_diff = drop(em$max.diff)),
+  fw17(data.table(em_objective = drop(em$objective), em_max_diff = drop(em$max.diff)),
          file.path(d$dir, paste0(tag, "_ashr_em_progress.csv")))
-  fwrite(as.data.table(sq$progress), file.path(d$dir, paste0(tag, "_ashr_mixsqp_progress.csv")), na = "NA")
-  d$matrix(paste0(tag, "_ashr_mixsqp_hessian"), sq$hessian, ids = NULL)
+  fw17(as.data.table(sq$progress), file.path(d$dir, paste0(tag, "_ashr_mixsqp_progress.csv")), na = "NA")
+  mat17(d, paste0(tag, "_ashr_mixsqp_hessian"), sq$hessian, ids = NULL)
 
   pihat <- pmax(sq$x / sum(sq$x), 0)
   pi_full <- rep(0, k); pi_full[nzc] <- pihat
@@ -323,7 +339,7 @@ ref_ashr <- function(d, tag, res, s) {
   ll <- ashr::calc_loglik(ghat, data)
   d$check(paste0(tag, "_ashr_loglik"), ll, fit$loglik)
   gp <- ashr:::prune.default(ghat, 1e-10)
-  fwrite(data.table(pi = pi_full, kept = pi_full > 1e-10), file.path(d$dir, paste0(tag, "_ashr_pi.csv")))
+  fw17(data.table(pi = pi_full, kept = pi_full > 1e-10), file.path(d$dir, paste0(tag, "_ashr_pi.csv")))
   pm <- ashr:::calc_pm(gp, data); psd <- ashr:::calc_psd(gp, data)
   np <- ashr:::calc_np(gp, data); lfdr <- ashr:::calc_lfdr(gp, data); lfsr <- ashr:::calc_lfsr(gp, data)
   d$check(paste0(tag, "_ashr_PosteriorMean"), pm, fit$result$PosteriorMean)
@@ -337,6 +353,6 @@ ref_ashr <- function(d, tag, res, s) {
   fo <- data.table(id = ids, PosteriorMean = pm, PosteriorSD = psd, NegativeProb = np, ZeroProb = lfdr,
                    lfsr = lfsr, svalue = fit$result$svalue, log2FoldChange = s$res$log2FoldChange,
                    lfcSE = s$res$lfcSE, CrILeft = pm - qn * psd, CrIRight = pm + qn * psd)
-  fwrite(fo, file.path(d$dir, paste0(tag, "_ashr_final.csv")), na = "NA")
+  fw17(fo, file.path(d$dir, paste0(tag, "_ashr_final.csv")), na = "NA")
   invisible(fo)
 }
