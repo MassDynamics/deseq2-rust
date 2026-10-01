@@ -1,6 +1,7 @@
 """Run the Rust engines (edge_rust, deseq2_rust) on the truth corpus.
 
-Writes <scenario>/rust_<engine>.csv with the production table, the same shape as r_<engine>.csv:
+Writes <scenario>/rust_<engine>.csv with the production table, the same shape as r_<engine>.csv,
+and <scenario>/rust_edger.diag/ in the layout of r_edger.diag/ (see write_edger_diag).
 rust_edger (discovery table on every scenario, as R), rust_deseq2 (or rust_deseq2_anova), rust_deseq2_{normal,apeglm,ashr} on the main
 scenarios. Null reps get edger + deseq2 only, as for R. Run with the Python that has both packages
 installed (e.g. `uv run --with <wheel> ...`); check_truth.py --engine rust calls this file with
@@ -50,13 +51,24 @@ def write(df: pd.DataFrame, path: Path):
     df.sort_values("GroupId").to_csv(path, index=False)
 
 
+def write_edger_diag(diag: dict, d: Path):
+    """r_edger.diag/ as run_r.R writes it: samples, genes, design, disp (.csv), scalars.json."""
+    d.mkdir(exist_ok=True)
+    for k in ("samples", "genes", "design", "disp"):
+        diag[k].to_csv(d / f"{k}.csv", index=False)
+    sc = {k: ({} if v is None else v) for k, v in diag["scalars"].items()}  # NULL as R writes it
+    (d / "scalars.json").write_text(json.dumps(sc, indent=2))
+
+
 def run_scenario(d: Path, edge_rust, deseq2_rust):
     p = json.loads((d / "params.json").read_text())
     anova = p["mode"] == "anova"
     if edge_rust is not None:
         # r_edger.csv is the discovery table on every scenario (anova included), so match it.
         c, si, comps, params = to_inputs(d, "edgeR")
-        write(edge_rust.run(c, si, comps, {**params, "mode": "discovery"}), d / "rust_edger.csv")
+        table, diag = edge_rust.run(c, si, comps, {**params, "mode": "discovery"}, diagnostics=True)
+        write(table, d / "rust_edger.csv")
+        write_edger_diag(diag, d / "rust_edger.diag")
     if deseq2_rust is None:
         return
     write(deseq2_rust.run(*to_inputs(d, "DESeq2")), d / ("rust_deseq2_anova.csv" if anova else "rust_deseq2.csv"))
