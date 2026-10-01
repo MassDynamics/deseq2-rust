@@ -3,8 +3,11 @@
 //! Inputs are the unshrunk DESeq2 fit as plain arrays; this crate does not depend on
 //! deseq2-core.
 
+pub mod apeglm;
 pub mod ashr;
 pub mod dense;
+pub mod eigen;
+pub mod glibm;
 pub mod linalg;
 pub mod mixsqp;
 pub mod xld;
@@ -19,6 +22,7 @@ pub enum ShrinkError {
     Unsupported(String),
 }
 
+pub use apeglm::{shrink_apeglm, ApeglmFit};
 pub use ashr::{ash_shrink, AshrFit, AshrTable};
 
 /// `lfcShrink(type = "ashr")`: shrunken log2 fold changes and their SEs (plus the full ash

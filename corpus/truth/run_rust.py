@@ -1,7 +1,7 @@
 """Run the Rust engines (edge_rust, deseq2_rust) on the truth corpus.
 
 Writes <scenario>/rust_<engine>.csv with the production table, the same shape as r_<engine>.csv:
-rust_edger, rust_deseq2 (or rust_deseq2_anova), rust_deseq2_{normal,apeglm,ashr} on the main
+rust_edger (discovery table on every scenario, as R), rust_deseq2 (or rust_deseq2_anova), rust_deseq2_{normal,apeglm,ashr} on the main
 scenarios. Null reps get edger + deseq2 only, as for R. Run with the Python that has both packages
 installed (e.g. `uv run --with <wheel> ...`); check_truth.py --engine rust calls this file with
 its own interpreter.
@@ -28,7 +28,7 @@ def to_inputs(d: Path, de_method: str, shrink: str = "none"):
     p = json.loads((d / "params.json").read_text())
     params = {
         "condition_col": p["condition_col"],
-        "control_cols": [{"Column": c, "Type": "numeric" if c == "covariate" else "categorical"}
+        "control_cols": [{"Column": c, "Type": "numerical" if c == "covariate" else "categorical"}
                          for c in p.get("control_cols", [])],
         "mode": p["mode"],
         "comparison_type": "custom",
@@ -53,8 +53,12 @@ def write(df: pd.DataFrame, path: Path):
 def run_scenario(d: Path, edge_rust, deseq2_rust):
     p = json.loads((d / "params.json").read_text())
     anova = p["mode"] == "anova"
-    if not anova:
-        write(edge_rust.run(*to_inputs(d, "edgeR")), d / "rust_edger.csv")
+    if edge_rust is not None:
+        # r_edger.csv is the discovery table on every scenario (anova included), so match it.
+        c, si, comps, params = to_inputs(d, "edgeR")
+        write(edge_rust.run(c, si, comps, {**params, "mode": "discovery"}), d / "rust_edger.csv")
+    if deseq2_rust is None:
+        return
     write(deseq2_rust.run(*to_inputs(d, "DESeq2")), d / ("rust_deseq2_anova.csv" if anova else "rust_deseq2.csv"))
     if d.name in MAIN or d.name.startswith("mix_"):
         for s in SHRINKS:
@@ -64,10 +68,12 @@ def run_scenario(d: Path, edge_rust, deseq2_rust):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--corpus", type=Path, default=Path.home() / "wd/md-count-truth-corpus")
+    ap.add_argument("--engines", default="edger,deseq2", help="comma list of edger, deseq2")
     ap.add_argument("names", nargs="*")
     a = ap.parse_args(argv)
-    import deseq2_rust
-    import edge_rust
+    eng = set(a.engines.split(","))
+    edge_rust = __import__("edge_rust") if "edger" in eng else None
+    deseq2_rust = __import__("deseq2_rust") if "deseq2" in eng else None
 
     names = a.names or list(json.loads((a.corpus / "index.json").read_text()))
     bad = 0
