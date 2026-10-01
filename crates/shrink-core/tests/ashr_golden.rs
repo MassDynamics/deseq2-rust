@@ -21,12 +21,11 @@ use shrink_core::mixsqp::{kkt, objective};
 const TOL: f64 = 1e-8;
 
 /// Comparisons where Rust's mix-SQP stops at a point that passes mixsqp's own (support-only)
-/// convergence test but has a Frank-Wolfe gap far above R's. Cause: at SQP iteration 0, QP
-/// step 17, R's search direction has inf-norm 3.8e-14 and Rust's is exactly 0, either side of
-/// mixsqp's 1e-14 zero-direction threshold, after ill-conditioned (rcond < eps) solves; R
-/// later adds mixture component 15 (weight 2.1e-3) and Rust never does. Kept faithful (no
-/// safeguard beyond mixsqp's own algorithm); see status-shrink.md.
-const KNOWN_SUBOPTIMAL: &[(&str, &str)] = &[("count_deseq2_count_synth_shrink_ashr_ctlfactor", "shrink_cmp_01")];
+/// convergence test but has a Frank-Wolfe gap far above R's. Empty since exp/log go through
+/// rnum::glibm (glibc-identical): synth ashr_ctlfactor cmp_01, previously pinned here after an
+/// ulp-level zero-direction split at SQP iteration 0, now meets the full certificate
+/// (FW gap 3.0e-7 vs R 3.1e-7). Kept so a regression can be pinned explicitly; see status-shrink.md.
+const KNOWN_SUBOPTIMAL: &[(&str, &str)] = &[];
 
 #[test]
 fn ashr_golden() {

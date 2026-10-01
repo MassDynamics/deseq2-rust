@@ -43,6 +43,12 @@ pub struct QpStep {
     pub k: i64,
     /// Step length (1 unless blocked).
     pub step: f64,
+    /// The system solved, `B p = rhs` (B column-major), its solution, and y after the step
+    /// (`_ashr_trace_solve.bin`).
+    pub b: Vec<f64>,
+    pub rhs: Vec<f64>,
+    pub p: Vec<f64>,
+    pub y: Vec<f64>,
 }
 
 /// One SQP iteration (`_ashr_trace_sqp.csv`).
@@ -122,7 +128,7 @@ fn obj(l: &Mat, w: &[f64], x: &[f64], z: &[f64], e: &[f64]) -> Result<f64, Shrin
     if umin <= 0.0 {
         return Err(ShrinkError::Numerical("mixsqp: objective is -Inf".into()));
     }
-    Ok(-arma_accu((0..u.len()).map(|i| w[i] * (z[i] + u[i].ln()))))
+    Ok(-arma_accu((0..u.len()).map(|i| w[i] * (z[i] + rnum::glibm::ln(u[i])))))
 }
 
 fn compute_grad(l: &Mat, w: &[f64], x: &[f64], e: &[f64]) -> (Vec<f64>, Mat) {
@@ -158,7 +164,7 @@ fn feasible_stepsize(x: &[f64], p: &[f64]) -> (Option<usize>, f64) {
     (Some(idx[jm]), a)
 }
 
-fn searchdir(h: &Mat, y: &[f64], ainc: f64) -> (Vec<f64>, f64, SolveRoute, f64) {
+fn searchdir(h: &Mat, y: &[f64], ainc: f64) -> (Vec<f64>, f64, SolveRoute, f64, Mat, Vec<f64>) {
     let (a0, amax) = (1e-15, 1e15);
     let n = y.len();
     let d = (0..n).map(|i| h.at(i, i)).fold(f64::INFINITY, f64::min);
@@ -182,7 +188,7 @@ fn searchdir(h: &Mat, y: &[f64], ainc: f64) -> (Vec<f64>, f64, SolveRoute, f64) 
     }
     let rhs: Vec<f64> = y.iter().map(|v| -v).collect();
     let (p, route, rc) = arma_solve(&b, &rhs);
-    (p, a, route, rc)
+    (p, a, route, rc, b, rhs)
 }
 
 fn activesetqp(
@@ -210,7 +216,8 @@ fn activesetqp(
             b[k] += hy[c];
         }
         let bs: Vec<f64> = i.iter().map(|&k| b[k]).collect();
-        let (ps, a_corr, route, rcond) = searchdir(&hs, &bs, IDENTITY_CONTRIB_INCREASE);
+        let (ps, a_corr, route, rcond, bmat, rhs) = searchdir(&hs, &bs, IDENTITY_CONTRIB_INCREASE);
+        let dbg = |y: &[f64]| (bmat.data.clone(), rhs.clone(), ps.clone(), y.to_vec());
         let mut p = vec![0.0; m];
         for (c, &k) in i.iter().enumerate() {
             p[k] = ps[c];
@@ -236,12 +243,14 @@ fn activesetqp(
             };
             match kk {
                 None => {
-                    trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind: 2, k: -1, step: 1.0 });
+                    let (b, rhs, p, y) = dbg(y);
+                    trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind: 2, k: -1, step: 1.0, b, rhs, p, y });
                     iter += 1;
                     break;
                 }
                 Some(k) if bb[k] >= -CONVTOL_ACTIVESET => {
-                    trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind: 3, k: kk.map(|v| v as i64).unwrap_or(-1), step: 1.0 });
+                    let (b, rhs, p, y) = dbg(y);
+                    trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind: 3, k: kk.map(|v| v as i64).unwrap_or(-1), step: 1.0, b, rhs, p, y });
                     iter += 1;
                     break;
                 }
@@ -270,7 +279,8 @@ fn activesetqp(
                 y[k] = 0.0;
             }
         }
-        trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind, k: k_rec, step: a_rec });
+        let (b, rhs, p, y) = dbg(y);
+        trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind, k: k_rec, step: a_rec, b, rhs, p, y });
         iter += 1;
     }
     iter

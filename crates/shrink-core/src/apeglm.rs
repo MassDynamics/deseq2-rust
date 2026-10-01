@@ -15,8 +15,8 @@
 //!
 //! The C++ objective goes through [`crate::eigen`] so the LBFGSpp path is R's, evaluation for
 //! evaluation; the R objective uses R's own operation order (`dgemv`, long-double `sum`).
-//! Every `exp` / `log` / `log1p` either side goes through [`crate::glibm`] (the reference R's
-//! glibc), so the result does not depend on the host libm.
+//! Every `exp` / `log` / `log1p` either side goes through [`rnum::glibm`] and
+//! [`rnum::glibm_log1p`] (the reference R's glibc), so the result does not depend on the host libm.
 //! Observation weights are not supported (DESeq2 passes them only from a `weights` assay).
 
 #![allow(
@@ -27,7 +27,8 @@
 
 use crate::dense::{getrf, getrs, rcond_from_lu, Mat};
 use crate::eigen;
-use crate::glibm;
+use rnum::glibm;
+use rnum::glibm_log1p::log1p;
 use crate::xld::{r_cumsum, r_sum};
 use crate::ShrinkError;
 use rnum::lbfgsb::{optim_bfgs, optimhess, OptimControl};
@@ -138,7 +139,7 @@ impl NbRow<'_> {
             d_neg_prior[k] = beta[k] / sigma2;
         }
         for &k in self.shrink {
-            neg_prior += glibm::log1p((beta[k] * beta[k]) / s2);
+            neg_prior += log1p((beta[k] * beta[k]) / s2);
             d_neg_prior[k] = 2.0 * beta[k] / (s2 + beta[k] * beta[k]);
         }
         let f = -1.0 * eigen::sum(&dw) / cnst + neg_prior / cnst + 10.0;
@@ -175,11 +176,11 @@ impl NbRow<'_> {
         ) + r_sum(
             self.shrink
                 .iter()
-                .map(|&k| -glibm::log1p((beta[k] * beta[k]) / s2)),
+                .map(|&k| -log1p((beta[k] * beta[k]) / s2)),
         );
         let lik = r_sum((0..xbeta.len()).map(|i| {
             let yi = self.y[i];
-            yi * xbeta[i] - (yi + size) * glibm::log(size + glibm::exp(xbeta[i] + self.offset[i]))
+            yi * xbeta[i] - (yi + size) * glibm::ln(size + glibm::exp(xbeta[i] + self.offset[i]))
         }));
         -lik - prior + cnst
     }
@@ -663,7 +664,7 @@ pub fn shrink_apeglm(
     let s = prior.prior_scale;
     let no_shrink: Vec<usize> = (0..p).filter(|&k| k != coef).collect();
     let shrink = vec![coef];
-    let offset: Vec<f64> = size_factors.iter().map(|&v| glibm::log(v)).collect();
+    let offset: Vec<f64> = size_factors.iter().map(|&v| glibm::ln(v)).collect();
 
     let intercept_idx: Vec<usize> = (0..n)
         .filter(|&i| (0..p).filter(|&k| design.at(i, k) == 0.0).count() == p - 1)
@@ -751,7 +752,7 @@ pub fn shrink_apeglm(
             v[0] = if basemean[i] == 0.0 {
                 0.0
             } else {
-                glibm::log(basemean[i])
+                glibm::ln(basemean[i])
             };
             v
         } else {

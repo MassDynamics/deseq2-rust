@@ -7,7 +7,6 @@ pub mod apeglm;
 pub mod ashr;
 pub mod dense;
 pub mod eigen;
-pub mod glibm;
 pub mod linalg;
 pub mod mixsqp;
 pub mod xld;

@@ -114,7 +114,7 @@ fn apeglm_matches_r() {
             // the per-evaluation objective along R's traced paths
             let pre = Table::read(&run.join(format!("{cmp}_apeglm_prefit.csv")));
             let cnst_r = pre.f("cnst");
-            let offset: Vec<f64> = inp.sf.iter().map(|&v| shrink_core::glibm::log(v)).collect();
+            let offset: Vec<f64> = inp.sf.iter().map(|&v| rnum::glibm::ln(v)).collect();
             let shrink = vec![coef];
             let (mut path_f, mut path_g, mut path_n) = (0.0f64, 0.0f64, 0usize);
             for fk in ["fit1", "fit2"] {

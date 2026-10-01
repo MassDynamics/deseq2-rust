@@ -6,7 +6,9 @@
 // iteration the EM-updated x, objective, gmin, QP solution y, step size and xnew; per
 // active-set iteration the working-set size, the identity correction a, guess_sympd(B,16),
 // rcond(B) (LU 1-norm estimate), whether solve(no_approx) succeeds (false means the
-// default solve took the approximate SVD route), and the step.
+// default solve took the approximate SVD route), and the step. trace_solve.bin adds, per
+// active-set iteration, the exact system solved (B, rhs), its solution, the rcond estimates
+// LAPACK returns on Armadillo's two routes, and y after the step.
 
 // [[Rcpp::depends(RcppArmadillo)]]
 #define ARMA_DONT_PRINT_ERRORS
@@ -16,6 +18,11 @@ using namespace Rcpp;
 using namespace arma;
 
 static std::vector<double> g_qp;   // rows of 12
+// per active-set iteration: sqp_iter, qp_iter, n, m, rcond_po (dpotrf 'L' + dpocon, lansy norm;
+// -1 if dpotrf fails), rcond_ge (dgetrf + dgecon, lange norm; -1 if dgetrf fails),
+// B (n*n col-major), rhs = -y (n), p from solve(B,-y) (n), y after the step (m)
+static std::vector<double> g_solve;
+static vec g_rhs, g_p; static mat g_B; static double g_rc_po, g_rc_ge;
 static int g_mode = 0;              // 0 = package solve; 1 = pinv in the approx case; 2 = y perturbed 1e-15 in the approx case
 static int g_sqp_iter = 0;
 
@@ -63,9 +70,19 @@ static void searchdir (const mat& H, const vec& y, vec& p, mat& B, double ainc) 
   g_guess = sym_helper::guess_sympd(B, uword(16)) ? 1 : 0;
   g_rcond = arma::rcond(B);
   vec p2; g_noapprox_ok = solve(p2, B, -y, solve_opts::no_approx) ? 1 : 0;
+  {
+    char nid = '1', lo = 'L'; blas_int nn = n, info = 0; vec wk(4*n + 1); podarray<blas_int> iw(n + 1);
+    mat A1 = B; double an = lapack::lansy(&nid, &lo, &nn, A1.memptr(), &nn, wk.memptr());
+    lapack::potrf(&lo, &nn, A1.memptr(), &nn, &info);
+    g_rc_po = -1; if (info == 0) { lapack::pocon(&lo, &nn, A1.memptr(), &nn, &an, &g_rc_po, wk.memptr(), iw.memptr(), &info); if (info != 0) g_rc_po = -2; }
+    mat A2 = B; double gn = lapack::lange(&nid, &nn, &nn, A2.memptr(), &nn, wk.memptr());
+    podarray<blas_int> ip(n + 2); lapack::getrf(&nn, &nn, A2.memptr(), &nn, ip.memptr(), &info);
+    g_rc_ge = -1; if (info == 0) { lapack::gecon(&nid, &nn, A2.memptr(), &nn, &gn, &g_rc_ge, wk.memptr(), iw.memptr(), &info); if (info != 0) g_rc_ge = -2; }
+  }
   if (g_mode == 0 || g_noapprox_ok) p = solve(B,-y);
   else if (g_mode == 1) p = pinv(B) * (-y);
   else { vec y2 = y % (1 + 1e-15 * linspace<vec>(-1, 1, n)); p = solve(B,-y2); }
+  g_B = B; g_rhs = -y; g_p = p;
 }
 static int activesetqp (const mat& H, const vec& g, vec& y, int maxiter,
                         double zerosearchdir, double tol, double ainc) {
@@ -97,6 +114,12 @@ static int activesetqp (const mat& H, const vec& g, vec& y, int maxiter,
     double row[12] = {double(g_sqp_iter), double(iter), double(i.n_elem), g_a_corr, double(g_tries),
                       double(g_guess), g_rcond, double(g_noapprox_ok), pn, double(kind), double(k), a};
     g_qp.insert(g_qp.end(), row, row + 12);
+    { int n = g_rhs.n_elem; double hd[6] = {double(g_sqp_iter), double(iter), double(n), double(m), g_rc_po, g_rc_ge};
+      g_solve.insert(g_solve.end(), hd, hd + 6);
+      g_solve.insert(g_solve.end(), g_B.begin(), g_B.end());
+      g_solve.insert(g_solve.end(), g_rhs.begin(), g_rhs.end());
+      g_solve.insert(g_solve.end(), g_p.begin(), g_p.end());
+      g_solve.insert(g_solve.end(), y.begin(), y.end()); }
     if (kind == 2 || kind == 3) { iter++; break; }
   }
   return iter;
@@ -123,7 +146,7 @@ static int linesearch (double f, const mat& L, const vec& w, const vec& z, const
 List mixsqp_trace (const arma::mat& L, const arma::vec& w, const arma::vec& z,
                    const arma::vec& x0, const arma::vec& eps, int numiter_em,
                    int maxitersqp, int maxiteractiveset, int mode = 0) {
-  g_qp.clear(); g_mode = mode;
+  g_qp.clear(); g_solve.clear(); g_mode = mode;
   int m = L.n_cols;
   mat P = L; vec x = x0;
   mat em_x(m, numiter_em);
@@ -158,5 +181,5 @@ List mixsqp_trace (const arma::mat& L, const arma::vec& w, const arma::vec& z,
     Named("X_y") = X_y.cols(0,i-1), Named("X_new") = X_new.cols(0,i-1),
     Named("obj") = objv.head(i), Named("gmin") = gminv.head(i), Named("step") = stepv.head(i),
     Named("nqp") = nqpv.head(i), Named("nls") = nlsv.head(i), Named("qp") = qp,
-    Named("niter") = i);
+    Named("niter") = i, Named("solve") = NumericVector(g_solve.begin(), g_solve.end()));
 }

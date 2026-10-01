@@ -7,6 +7,7 @@ use crate::dense::Mat;
 use crate::mixsqp::{mixsqp_ashr, MixsqpResult};
 use crate::xld::{r_cumsum, r_sum};
 use crate::ShrinkError;
+use rnum::glibm;
 use rnum::nmath::{dnorm, pnorm, qnorm};
 
 /// Per-observation output, in input order (one row per input row).
@@ -86,7 +87,7 @@ fn r_pow(x: f64, y: f64) -> f64 {
 #[inline]
 fn lcd(x: f64, s: f64, sd: f64) -> f64 {
     let sdm = (s * s + sd * sd).sqrt();
-    dnorm((x - 0.0) / sdm, 0.0, 1.0, true) - sdm.ln()
+    dnorm((x - 0.0) / sdm, 0.0, 1.0, true) - glibm::ln(sdm)
 }
 
 /// The full ashr path. `x` = MLE log2 fold changes, `s` = their standard errors.
@@ -119,7 +120,7 @@ pub fn ash_shrink(x: &[f64], s: &[f64]) -> Result<AshrFit, ShrinkError> {
     }
     for c in 0..k {
         for r in 0..n {
-            let v = (lik.at(r, c) - lnorm[r]).exp();
+            let v = glibm::exp(lik.at(r, c) - lnorm[r]);
             lik.set(r, c, v);
         }
     }
@@ -157,7 +158,7 @@ pub fn posterior_table(x: &[f64], s: &[f64], excluded: &[bool], mixsd: &[f64], p
     let spi = r_sum(kept.iter().map(|&c| pi[c]));
     let pk: Vec<f64> = kept.iter().map(|&c| pi[c] / spi).collect();
     let sdk: Vec<f64> = kept.iter().map(|&c| mixsd[c]).collect();
-    let logpi: Vec<f64> = pk.iter().map(|p| p.ln()).collect();
+    let logpi: Vec<f64> = pk.iter().map(|&p| glibm::ln(p)).collect();
     let kk = pk.len();
     let n = x.len();
     let mut t = AshrTable::default();
@@ -184,7 +185,7 @@ pub fn posterior_table(x: &[f64], s: &[f64], excluded: &[bool], mixsd: &[f64], p
             }
             let lmax = lpost.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
             for c in 0..kk {
-                pp[c] = (lpost[c] - lmax).exp();
+                pp[c] = glibm::exp(lpost[c] - lmax);
             }
             let rs = r_sum(pp.iter().cloned());
             for c in 0..kk {

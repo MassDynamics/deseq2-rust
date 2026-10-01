@@ -1,6 +1,6 @@
 # Record the mixsqp SQP / active-set path for every ashr golden in reference-shrink/, using
 # the instrumented mixsqp_trace.cpp, after checking it reproduces the dumped solution bit for
-# bit. Writes shrink_cmp_XX_ashr_trace_{sqp,qp}.csv next to the existing ashr goldens.
+# bit. Writes shrink_cmp_XX_ashr_trace_{sqp,qp,em}.csv and _trace_solve.bin next to the existing ashr goldens.
 #   Rscript trace_mixsqp.R   (inside the pinned image; see gen_mixsqp_trace.sh)
 here <- dirname(normalizePath(sub("--file=", "", grep("--file=", commandArgs(FALSE), value = TRUE))))
 corpus <- Sys.getenv("MD_COUNT_CORPUS_DIR", "/corpus")
@@ -43,6 +43,7 @@ for (run in list.files(root, pattern = "_ashr")) {
     fw(qp, paste0(pre, "_trace_qp.csv"))
     emx <- t(tr$em_x); colnames(emx) <- paste0("x", seq_len(m))
     fw(as.data.frame(emx), paste0(pre, "_trace_em.csv"))
+    writeBin(tr$solve, paste0(pre, "_trace_solve.bin"), endian = "little")
   }
 }
 if (!ok) stop("trace does not reproduce the golden mixsqp solution")

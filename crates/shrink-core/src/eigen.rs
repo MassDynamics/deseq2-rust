@@ -126,7 +126,7 @@ pub fn array_exp(v: &[f64]) -> Vec<f64> {
             if i < full {
                 pexp(x)
             } else {
-                crate::glibm::exp(x)
+                rnum::glibm::exp(x)
             }
         })
         .collect()
@@ -141,7 +141,7 @@ pub fn array_log(v: &[f64]) -> Vec<f64> {
             if i < full {
                 plog(x)
             } else {
-                crate::glibm::log(x)
+                rnum::glibm::ln(x)
             }
         })
         .collect()
