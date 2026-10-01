@@ -54,6 +54,7 @@ fn bits_rel(a: &[f64], b: &[f64]) -> f64 {
 fn mixsqp_solve() {
     let mut kernel_bad = 0;
     let mut path_bad = 0;
+    let mut routes = std::collections::BTreeMap::new();
     for run in runs("_shrink_ashr") {
         for cmp in cmps(&run, "ashr") {
             let f = run.join(format!("{cmp}_ashr_trace_solve.bin"));
@@ -67,6 +68,7 @@ fn mixsqp_solve() {
                 let n = r.rhs.len();
                 let b = Mat::from_col_major(n, n, r.b.clone());
                 let (p, route, _) = arma_solve(&b, &r.rhs);
+                *routes.entry(format!("{route:?}")).or_insert(0) += 1;
                 let po = dpocon_l(&b).unwrap_or(-1.0);
                 let ge = dgecon_1(&b).unwrap_or(-1.0);
                 let gp = bits_rel(&p, &r.p);
@@ -103,5 +105,8 @@ fn mixsqp_solve() {
             }
         }
     }
-    println!("kernel mismatches {kernel_bad}, paths differing {path_bad}");
+    println!("kernel mismatches {kernel_bad}, paths differing {path_bad}, routes {routes:?}");
+    assert!(!routes.is_empty(), "no solve traces found");
+    assert_eq!(kernel_bad, 0, "solves or rcond estimates differ from R's");
+    assert_eq!(path_bad, 0, "Rust's active-set path differs from R's");
 }

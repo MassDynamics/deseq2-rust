@@ -1,7 +1,9 @@
 //! Armadillo 15 `solve(B, rhs)` dispatch as mixsqp reaches it, plus the symmetric Jacobi
-//! eigensolver used for the ill-conditioned fallback and for the singular values of L.
+//! eigensolver used for the singular values of L (and as the min-norm fallback above the
+//! dgelsd branch ported in [`crate::lapack`]).
 
-use crate::dense::{getrf, getrs, potrf_lower, potrs_lower, rcond_from_lu, Mat};
+use crate::dense::{getrf, getrs, potrf_lower, potrs_lower, Mat};
+use crate::lapack;
 
 /// Which branch `solve()` took.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -10,8 +12,8 @@ pub enum SolveRoute {
     Sympd,
     /// LU (dgetrf + dgetrs).
     Square,
-    /// rcond below eps (or a failed factorisation): Armadillo's `solve_approx_svd`
-    /// (LAPACK dgelsd). Ported as a minimum-norm least-squares solve, see [`approx_min_norm`].
+    /// rcond below eps (or a failed LU): Armadillo's `solve_approx_svd`, LAPACK dgelsd
+    /// ([`lapack::dgelsd_square`]).
     Approx,
 }
 
@@ -65,62 +67,85 @@ pub fn guess_sympd(a: &Mat, min_n_rows: usize) -> bool {
 /// `solve(B, rhs)` with default options for a square dense `B` of size < 32 (so no band
 /// detection) that is not triangular.
 ///
-/// The rcond test uses the exact 1-norm reciprocal condition number, where LAPACK uses the
-/// dgecon / dpocon estimate (a lower bound on `||B^-1||_1`, so an upper bound on rcond).
-/// The two agree on which side of eps they fall unless rcond is within the estimator's
-/// slack of eps; the tests compare the route against the R trace solve by solve.
+/// The flow is Armadillo 15.6's: if `guess_sympd(B, 16)`, `solve_sympd_rcond` (dlansy '1'
+/// on B, dpotrf 'L', dpotrs, dpocon); a failed dpotrf falls through to `solve_square_rcond`
+/// (dlange '1', dgetrf, dgetrs, dgecon), where a failed dgetrf goes straight to the
+/// approximation. An rcond below eps or NaN sends the system to `solve_approx_svd`: dgelsd
+/// with rcond = max(rows, cols) * eps. The returned f64 is the rcond that decided the route.
 pub fn arma_solve(b: &Mat, rhs: &[f64]) -> (Vec<f64>, SolveRoute, f64) {
-    let n = b.nrow;
     let eps = f64::EPSILON;
     if guess_sympd(b, 16) {
-        let mut f = b.clone();
-        if potrf_lower(&mut f) {
-            let mut x = rhs.to_vec();
-            potrs_lower(&f, &mut x);
-            let rc = rcond_chol(b, &f);
+        if let Some((f, rc)) = sympd_factor_rcond(b) {
             if !(rc < eps || rc.is_nan()) {
+                let mut x = rhs.to_vec();
+                potrs_lower(&f, &mut x);
                 return (x, SolveRoute::Sympd, rc);
             }
-            return (approx_min_norm(b, rhs), SolveRoute::Approx, rc);
+            return (solve_approx_svd(b, rhs), SolveRoute::Approx, rc);
         }
     }
-    let (f, ipiv, info) = getrf(b);
-    if info != 0 {
-        return (approx_min_norm(b, rhs), SolveRoute::Approx, 0.0);
+    let Some((f, ipiv, rc)) = lu_factor_rcond(b) else {
+        return (solve_approx_svd(b, rhs), SolveRoute::Approx, 0.0);
+    };
+    if rc < eps || rc.is_nan() {
+        return (solve_approx_svd(b, rhs), SolveRoute::Approx, rc);
     }
     let mut x = rhs.to_vec();
     getrs(&f, &ipiv, &mut x);
-    let rc = rcond_from_lu(b, &f, &ipiv);
-    let _ = n;
-    if rc < eps || rc.is_nan() {
-        return (approx_min_norm(b, rhs), SolveRoute::Approx, rc);
-    }
     (x, SolveRoute::Square, rc)
 }
 
-fn rcond_chol(a: &Mat, f: &Mat) -> f64 {
-    let n = a.nrow;
-    let anorm = (0..n).map(|j| a.col(j).iter().map(|v| v.abs()).sum::<f64>()).fold(0.0, f64::max);
-    let mut inorm: f64 = 0.0;
-    for j in 0..n {
-        let mut e = vec![0.0; n];
-        e[j] = 1.0;
-        potrs_lower(f, &mut e);
-        inorm = inorm.max(e.iter().map(|v| v.abs()).sum());
+/// dlansy('1','L') then dpotrf('L') and dpocon('L'); None when dpotrf fails.
+fn sympd_factor_rcond(b: &Mat) -> Option<(Mat, f64)> {
+    let n = b.nrow;
+    let anorm = lapack::dlansy_1l(&b.data, n, n);
+    let mut f = b.clone();
+    if !potrf_lower(&mut f) {
+        return None;
     }
-    if anorm == 0.0 || !inorm.is_finite() {
-        return 0.0;
+    let rc = lapack::dpocon_l(&f.data, n, n, anorm);
+    Some((f, rc))
+}
+
+/// dlange('1') then dgetrf and dgecon('1'); None when dgetrf reports info != 0.
+fn lu_factor_rcond(b: &Mat) -> Option<(Mat, Vec<usize>, f64)> {
+    let n = b.nrow;
+    let anorm = lapack::dlange_1(&b.data, n, n, n);
+    let (f, ipiv, info) = getrf(b);
+    if info != 0 {
+        return None;
     }
-    1.0 / (anorm * inorm)
+    let rc = lapack::dgecon_1(&f.data, n, n, anorm);
+    Some((f, ipiv, rc))
+}
+
+/// The rcond LAPACK's dpocon reports on Armadillo's sympd route (None if dpotrf fails).
+pub fn dpocon_l(b: &Mat) -> Option<f64> {
+    sympd_factor_rcond(b).map(|(_, rc)| rc)
+}
+
+/// The rcond LAPACK's dgecon reports on Armadillo's square route (None if dgetrf fails).
+pub fn dgecon_1(b: &Mat) -> Option<f64> {
+    lu_factor_rcond(b).map(|(_, _, rc)| rc)
+}
+
+/// Armadillo `solve_approx_svd` for a square system: dgelsd with rcond = n * eps. dgelsd is
+/// ported for n <= 25 (every system mixsqp builds on the corpus); above that, or if dgelsd
+/// fails, the same minimum-norm solution comes from [`approx_min_norm`].
+fn solve_approx_svd(b: &Mat, rhs: &[f64]) -> Vec<f64> {
+    let n = b.nrow;
+    if (1..=lapack::DGELSD_SMLSIZ).contains(&n) {
+        if let Some(x) = lapack::dgelsd_square(&b.data, n, rhs, n as f64 * f64::EPSILON) {
+            return x;
+        }
+    }
+    approx_min_norm(b, rhs)
 }
 
 /// Minimum-norm least-squares solution of a symmetric system, truncating singular values
-/// at `max(m,n) * eps * s_max` (the threshold Armadillo hands to dgelsd).
-///
-/// This is the documented solution dgelsd computes, by a different factorisation; on the
-/// near-singular systems where Armadillo takes this route the two differ at the level of
-/// the system's conditioning, which is why the final mixture weights are gated by a KKT
-/// certificate and not by bit-equality (see status-shrink.md).
+/// at `max(m,n) * eps * s_max` (the threshold Armadillo hands to dgelsd), by a Jacobi
+/// eigendecomposition. Used only outside the ported dgelsd branch (n > 25), where it gives
+/// dgelsd's solution up to rounding.
 pub fn approx_min_norm(b: &Mat, rhs: &[f64]) -> Vec<f64> {
     let n = b.nrow;
     let (vals, vecs) = jacobi_eigen(b);

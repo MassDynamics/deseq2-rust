@@ -83,6 +83,7 @@ impl Xld {
     }
 
     /// `self + other`, rounded to a 64-bit mantissa.
+    #[allow(clippy::should_implement_trait)]
     pub fn add(self, other: Xld) -> Xld {
         if self.nonfinite.is_some() || other.nonfinite.is_some() {
             return Xld { nonfinite: Some(self.to_f64() + other.to_f64()), ..Xld::ZERO };

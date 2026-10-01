@@ -3,10 +3,14 @@
 //! Inputs are the unshrunk DESeq2 fit as plain arrays; this crate does not depend on
 //! deseq2-core.
 
+// Index loops mirror the Fortran / C++ sources each kernel is ported from.
+#![allow(clippy::needless_range_loop)]
+
 pub mod apeglm;
 pub mod ashr;
 pub mod dense;
 pub mod eigen;
+pub mod lapack;
 pub mod linalg;
 pub mod mixsqp;
 pub mod xld;

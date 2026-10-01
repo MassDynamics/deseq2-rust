@@ -152,7 +152,7 @@ fn syrk_ut_minus(a: &[f64], ao: usize, c: &mut [f64], co: usize, lda: usize, n: 
                 t += a[ao + ix(lda, l, i)] * a[ao + ix(lda, l, j)];
             }
             let p = co + ix(lda, i, j);
-            c[p] = -t + c[p];
+            c[p] += -t;
         }
     }
 }

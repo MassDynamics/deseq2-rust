@@ -2,8 +2,8 @@
 //! the control values ashr 2.2-63 passes (`eps = 1e-6`, `numiter.em = 20`, the rest default).
 //!
 //! The arithmetic follows the package's Armadillo expressions in the same order (see
-//! `dense.rs` for the BLAS / LAPACK kernels). The one deliberate departure is the
-//! ill-conditioned branch of `solve()`, see `linalg::approx_min_norm`.
+//! `dense.rs` and `lapack.rs` for the BLAS / LAPACK kernels, `linalg::arma_solve` for the
+//! `solve()` dispatch including its dgelsd fallback).
 
 use crate::dense::{arma_accu, arma_dot, chol_upper_ok, gemv_n, gemv_t, syrk_t, Mat};
 use crate::linalg::{arma_solve, jacobi_eigen, SolveRoute};
@@ -176,9 +176,7 @@ fn searchdir(h: &Mat, y: &[f64], ainc: f64) -> (Vec<f64>, f64, SolveRoute, f64, 
             let v = b.at(i, i) + a;
             b.set(i, i, v);
         }
-        if a * ainc > amax {
-            break;
-        } else if chol_upper_ok(&b) {
+        if a * ainc > amax || chol_upper_ok(&b) {
             break;
         } else if a <= 0.0 {
             a = a0;
@@ -264,7 +262,7 @@ fn activesetqp(
             let (k, a) = feasible_stepsize(y, &p);
             k_rec = k.map(|v| v as i64).unwrap_or(-1);
             a_rec = a;
-            let add = matches!(k, Some(_)) && a < 1.0 && i.len() > 1;
+            let add = k.is_some() && a < 1.0 && i.len() > 1;
             for q in 0..m {
                 y[q] += a * p[q];
             }

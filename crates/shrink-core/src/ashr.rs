@@ -63,7 +63,7 @@ pub fn autoselect_mixsd(x: &[f64], s: &[f64], excluded: &[bool]) -> Result<Vec<f
     };
     let mult = 2f64.sqrt();
     let npoint = ((smax / smin).log2() / mult.log2()).ceil();
-    if !npoint.is_finite() || npoint < 0.0 || npoint > 1e6 {
+    if !npoint.is_finite() || !(0.0..=1e6).contains(&npoint) {
         return Err(ShrinkError::Numerical(format!("ashr: grid size not finite ({npoint})")));
     }
     let np = npoint as i64;

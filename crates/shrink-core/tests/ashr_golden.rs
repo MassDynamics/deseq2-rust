@@ -3,13 +3,12 @@
 //! Gates (see status-shrink.md for the reasoning):
 //! - deterministic intermediates (grid, L, lnorm, the 20 EM iterates, and the posterior table
 //!   computed from R's own pi) at rel 1e-8;
-//! - the mix-SQP solution by a certificate: Rust's x passes mixsqp's convergence test, its
+//! - end to end, pi, PosteriorMean, PosteriorSD and lfsr at rel 1e-8. This needs the
+//!   active-set path to match R's step for step, including the solves below rcond = eps that
+//!   go to Armadillo's dgelsd fallback (tests/mixsqp_solve.rs checks that bit for bit);
+//! - the mix-SQP certificate on top: Rust's x passes mixsqp's convergence test, its
 //!   Frank-Wolfe gap is no worse than twice R's, and |f_rust - f_R| is within the sum of the
-//!   two FW gaps. The weights themselves
-//!   are not comparable at 1e-8, because the reference's first active-set solves sit below
-//!   rcond = eps (Armadillo's dgelsd fallback) and a 1e-15 perturbation there moves the final
-//!   weights by up to 3e-4;
-//! - the end-to-end table is reported, and held to the R-vs-perturbed-R yardstick (1e-3 rel).
+//!   two FW gaps.
 
 mod common;
 use common::*;
@@ -20,13 +19,6 @@ use shrink_core::mixsqp::{kkt, objective};
 
 const TOL: f64 = 1e-8;
 
-/// Comparisons where Rust's mix-SQP stops at a point that passes mixsqp's own (support-only)
-/// convergence test but has a Frank-Wolfe gap far above R's. Empty since exp/log go through
-/// rnum::glibm (glibc-identical): synth ashr_ctlfactor cmp_01, previously pinned here after an
-/// ulp-level zero-direction split at SQP iteration 0, now meets the full certificate
-/// (FW gap 3.0e-7 vs R 3.1e-7). Kept so a regression can be pinned explicitly; see status-shrink.md.
-const KNOWN_SUBOPTIMAL: &[(&str, &str)] = &[];
-
 #[test]
 fn ashr_golden() {
     let runs = runs("_shrink_ashr");
@@ -34,7 +26,6 @@ fn ashr_golden() {
         return;
     }
     let mut n_cmp = 0;
-    let mut n_known = 0;
     let mut worst = std::collections::BTreeMap::<&str, f64>::new();
     let bump = |k: &'static str, v: f64, w: &mut std::collections::BTreeMap<&str, f64>| {
         let e = w.entry(k).or_insert(0.0);
@@ -119,7 +110,6 @@ fn ashr_golden() {
                 (f_rust - f_r).abs(),
                 fw_rust + fw_r
             );
-            let known = KNOWN_SUBOPTIMAL.iter().any(|(r, c)| run.ends_with(r) && cmp == *c);
 
             let pi_r = Table::read(&p("pi")).f("pi");
             let g_pi = max_rel(&fit.pi, &pi_r);
@@ -149,8 +139,7 @@ fn ashr_golden() {
             let t = &fit.table;
             let e_pm = max_rel(&t.posterior_mean, &fin.f("PosteriorMean"));
             let e_psd = max_rel(&t.posterior_sd, &fin.f("PosteriorSD"));
-            // lfsr reaches 1e-300 in the tails, so its gap is absolute (it is a probability)
-            let e_lfsr = max_abs(&t.lfsr, &fin.f("lfsr"));
+            let e_lfsr = max_rel(&t.lfsr, &fin.f("lfsr"));
             println!(
                 "{} {cmp} | {g_grid:.1e} {g_l:.1e} {g_lnorm:.1e} {g_em:.1e} | {route_mis}/{} | {sqp_r}/{} | {obj_rel:.1e} fw {fw_rust:.1e}/{fw_r:.1e} gmin {gmin_rust:.1e}/{gmin_r:.1e} stat {stat_rust:.1e} | {g_pi:.1e} | {g_post:.1e} | {e_pm:.1e} {e_psd:.1e} {e_lfsr:.1e}",
                 run.file_name().unwrap().to_string_lossy(),
@@ -168,23 +157,24 @@ fn ashr_golden() {
             bump("pm_e2e", e_pm, &mut worst);
             bump("psd_e2e", e_psd, &mut worst);
             bump("lfsr_e2e", e_lfsr, &mut worst);
-            for (k, v) in [("grid", g_grid), ("L", g_l), ("lnorm", g_lnorm), ("em", g_em), ("posterior(R pi)", g_post)] {
+            for (k, v) in [
+                ("grid", g_grid),
+                ("L", g_l),
+                ("lnorm", g_lnorm),
+                ("em", g_em),
+                ("posterior(R pi)", g_post),
+                ("pi", g_pi),
+                ("PosteriorMean", e_pm),
+                ("PosteriorSD", e_psd),
+                ("lfsr", e_lfsr),
+            ] {
                 assert!(v <= TOL, "{cmp}: {k} gap {v:e} > {TOL:e}");
             }
-            if known {
-                // mixsqp-faithful but suboptimal: pinned so it cannot silently get worse
-                n_known += 1;
-                assert!(fw_rust <= 3e-3 && e_pm <= 1e-2 && e_psd <= 1e-2, "{cmp}: known case got worse");
-            } else {
-                // certificate: Rust is as close to optimal as R's own answer (same FW gap order)
-                assert!(fw_rust <= 2.0 * fw_r + 1e-9, "{cmp}: Rust FW gap {fw_rust:e} vs R {fw_r:e}");
-                for (k, v) in [("pm", e_pm), ("psd", e_psd), ("lfsr(abs)", e_lfsr)] {
-                    assert!(v <= 1e-3, "{cmp}: end-to-end {k} gap {v:e} beyond the perturbation yardstick");
-                }
-            }
+            // certificate: Rust is as close to optimal as R's own answer (same FW gap order)
+            assert!(fw_rust <= 2.0 * fw_r + 1e-9, "{cmp}: Rust FW gap {fw_rust:e} vs R {fw_r:e}");
+            assert_eq!(route_mis, 0, "{cmp}: solve routes differ from R's trace");
         }
     }
     println!("worst gaps over {n_cmp} comparisons: {worst:#?}");
     assert!(n_cmp > 0);
-    assert_eq!(n_known, KNOWN_SUBOPTIMAL.len(), "a known-suboptimal case is missing or now passes");
 }

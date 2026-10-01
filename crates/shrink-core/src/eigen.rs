@@ -6,6 +6,10 @@
 //! transcendental functions are Eigen's Cephes-derived `pexp_double` / `plog_double`
 //! (`arch/Default/GenericPacketMathFunctions.h`), not the C library. Elements left over
 //! after the last full packet go through the scalar functor, i.e. the C library.
+//!
+//! Constants and statement shapes are copied from Eigen as written, and `min`/`max` keep the
+//! NaN handling that `clamp` would change, so the matching style lints are off here.
+#![allow(clippy::excessive_precision, clippy::approx_constant, clippy::manual_clamp, clippy::assign_op_pattern)]
 
 const PACKET: usize = 2;
 
