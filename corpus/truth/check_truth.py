@@ -22,6 +22,7 @@ edge-rust can import this file by path:
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import math
 import os
@@ -184,7 +185,7 @@ def p_err(a, b):
 def r_trim_mean(x, trim):
     """Row-wise mean(x, trim) with R's lo/hi index rule."""
     n = x.shape[1]
-    lo = int(math.floor(n * trim)) + 1
+    lo = math.floor(n * trim) + 1
     hi = n + 1 - lo
     s = np.sort(x, axis=1)
     return s[:, lo - 1:hi].mean(axis=1)
@@ -471,7 +472,7 @@ def check_shrinkage(rep, root, prefix, engines):
             f"<= {fmt(ub)}", "genes with true LFC != 0; planted outliers excluded")
     bins = [0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5001]
     parts = []
-    for lo, hi in zip(bins[:-1], bins[1:]):
+    for lo, hi in itertools.pairwise(bins):
         b = (L > lo) & (L <= hi) if lo > 0 else (L <= hi)
         if b.sum():
             parts.append(f"({lo},{hi:.2f}] {fmt(float(L[b].mean()), 2)}->{fmt(float(E[b].mean()), 2)} n={b.sum()}")

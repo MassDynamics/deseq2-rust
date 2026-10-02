@@ -22,24 +22,47 @@ pub struct F80 {
     nonfinite: Option<f64>,
 }
 
+// `neg`, `add` and `sub` are explicit F80 operations (rounding to the 64-bit mantissa), named
+// after R's long-double expressions; operator traits would hide where the rounding happens.
+#[allow(clippy::should_implement_trait)]
 impl F80 {
-    pub const ZERO: F80 = F80 { neg: false, exp: 0, mant: 0, nonfinite: None };
+    pub const ZERO: F80 = F80 {
+        neg: false,
+        exp: 0,
+        mant: 0,
+        nonfinite: None,
+    };
 
     /// Exact conversion from `f64`.
     pub fn from_f64(x: f64) -> F80 {
         if !x.is_finite() {
-            return F80 { nonfinite: Some(x), ..F80::ZERO };
+            return F80 {
+                nonfinite: Some(x),
+                ..F80::ZERO
+            };
         }
         if x == 0.0 {
-            return F80 { neg: x.is_sign_negative(), ..F80::ZERO };
+            return F80 {
+                neg: x.is_sign_negative(),
+                ..F80::ZERO
+            };
         }
         let bits = x.to_bits();
         let neg = bits >> 63 == 1;
         let e = ((bits >> 52) & 0x7ff) as i32;
         let frac = bits & ((1u64 << 52) - 1);
-        let (m, big_e) = if e == 0 { (frac, -1074) } else { (frac | (1u64 << 52), e - 1075) };
+        let (m, big_e) = if e == 0 {
+            (frac, -1074)
+        } else {
+            (frac | (1u64 << 52), e - 1075)
+        };
         let lz = m.leading_zeros() as i32;
-        F80 { neg, exp: big_e - lz + 63, mant: m << lz, nonfinite: None }
+        F80 {
+            neg,
+            exp: big_e - lz + 63,
+            mant: m << lz,
+            nonfinite: None,
+        }
     }
 
     /// Exact conversion from an integer count.
@@ -48,7 +71,12 @@ impl F80 {
             return F80::ZERO;
         }
         let lz = n.leading_zeros() as i32;
-        F80 { neg: false, exp: 63 - lz, mant: n << lz, nonfinite: None }
+        F80 {
+            neg: false,
+            exp: 63 - lz,
+            mant: n << lz,
+            nonfinite: None,
+        }
     }
 
     /// Round to double (round to nearest, ties to even), as an x87 `fstp` to a double does.
@@ -64,7 +92,11 @@ impl F80 {
         let shift = (lsb - (self.exp - 63)) as u32;
         let (mut q, rem, half) = if shift >= 64 {
             // Far below the smallest subnormal: rounds to zero (or to the smallest when > half).
-            (0u64, if shift == 64 { self.mant as u128 } else { 1 }, if shift == 64 { 1u128 << 63 } else { u128::MAX })
+            (
+                0u64,
+                if shift == 64 { self.mant as u128 } else { 1 },
+                if shift == 64 { 1u128 << 63 } else { u128::MAX },
+            )
         } else {
             let m = self.mant as u128;
             (
@@ -90,7 +122,11 @@ impl F80 {
         }
         let e = lsb + 52 + 1023;
         if e >= 0x7ff {
-            return if self.neg { f64::NEG_INFINITY } else { f64::INFINITY };
+            return if self.neg {
+                f64::NEG_INFINITY
+            } else {
+                f64::INFINITY
+            };
         }
         f64::from_bits(sign | ((e as u64) << 52) | (q & ((1u64 << 52) - 1)))
     }
@@ -100,7 +136,11 @@ impl F80 {
     }
 
     pub fn neg(self) -> F80 {
-        F80 { neg: !self.neg, nonfinite: self.nonfinite.map(|x| -x), ..self }
+        F80 {
+            neg: !self.neg,
+            nonfinite: self.nonfinite.map(|x| -x),
+            ..self
+        }
     }
 
     fn cmp_mag(&self, o: &F80) -> Ordering {
@@ -115,7 +155,12 @@ impl F80 {
         let top = 127 - s.leading_zeros() as i32;
         if top <= 63 {
             let m = (s as u64) << (63 - top);
-            return F80 { neg, exp: e_lsb + top, mant: m, nonfinite: None };
+            return F80 {
+                neg,
+                exp: e_lsb + top,
+                mant: m,
+                nonfinite: None,
+            };
         }
         let shift = (top - 63) as u32;
         let rem = s & ((1u128 << shift) - 1);
@@ -131,7 +176,12 @@ impl F80 {
                 m = mm;
             }
         }
-        F80 { neg, exp, mant: m, nonfinite: None }
+        F80 {
+            neg,
+            exp,
+            mant: m,
+            nonfinite: None,
+        }
     }
 
     /// Extended-precision addition.
@@ -139,18 +189,28 @@ impl F80 {
         if self.nonfinite.is_some() || o.nonfinite.is_some() {
             let a = self.nonfinite.unwrap_or(0.0);
             let b = o.nonfinite.unwrap_or(0.0);
-            return F80 { nonfinite: Some(a + b), ..F80::ZERO };
+            return F80 {
+                nonfinite: Some(a + b),
+                ..F80::ZERO
+            };
         }
         if o.mant == 0 {
             if self.mant == 0 {
-                return F80 { neg: self.neg && o.neg, ..F80::ZERO };
+                return F80 {
+                    neg: self.neg && o.neg,
+                    ..F80::ZERO
+                };
             }
             return self;
         }
         if self.mant == 0 {
             return o;
         }
-        let (a, b) = if self.cmp_mag(&o) == Ordering::Less { (o, self) } else { (self, o) };
+        let (a, b) = if self.cmp_mag(&o) == Ordering::Less {
+            (o, self)
+        } else {
+            (self, o)
+        };
         let a_big = (a.mant as u128) << 62;
         let d = (a.exp - b.exp) as u32;
         let b_full = (b.mant as u128) << 62;
@@ -183,7 +243,10 @@ impl F80 {
     /// Extended-precision division by a positive integer (`s /= n` with `n` an `R_xlen_t`).
     pub fn div_u64(self, n: u64) -> F80 {
         if let Some(x) = self.nonfinite {
-            return F80 { nonfinite: Some(x / n as f64), ..F80::ZERO };
+            return F80 {
+                nonfinite: Some(x / n as f64),
+                ..F80::ZERO
+            };
         }
         if self.mant == 0 {
             return self;
@@ -247,7 +310,10 @@ pub fn row_sum(row: &[f64]) -> f64 {
 
 /// One row of `rowMeans(x)`: extended sum, extended division, one rounding.
 pub fn row_mean(row: &[f64]) -> f64 {
-    row.iter().fold(F80::ZERO, |s, &v| s.add_f64(v)).div_u64(row.len() as u64).to_f64()
+    row.iter()
+        .fold(F80::ZERO, |s, &v| s.add_f64(v))
+        .div_u64(row.len() as u64)
+        .to_f64()
 }
 
 /// R's `rcmp` with NA last.
@@ -387,7 +453,9 @@ mod r_cases {
     /// Cases dumped from R 4.5 in the production image (`/tmp/d2/ext_cases.txt`), when present.
     #[test]
     fn matches_r_dump() {
-        let Ok(txt) = std::fs::read_to_string("/tmp/d2/ext_cases.txt") else { return };
+        let Ok(txt) = std::fs::read_to_string("/tmp/d2/ext_cases.txt") else {
+            return;
+        };
         let mut bad = 0;
         for line in txt.lines() {
             let (a, b) = line.split_once(" | ").unwrap();

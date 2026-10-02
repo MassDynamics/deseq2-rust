@@ -9,11 +9,13 @@ license.workspace = true
 [lib]
 name = "_core"
 crate-type = ["cdylib"]
+# No Rust tests: the extension resolves Python symbols at load time, so a test binary cannot
+# start outside Python. pytest (tests/test_deseq2_golden.py) covers this crate.
+test = false
+doctest = false
 
 [dependencies]
 deseq2-core = { path = "../deseq2-core" }
 shrink-core = { path = "../shrink-core" }
-edger-core = { workspace = true }
-rnum = { workspace = true }
 pyo3 = { version = "0.24", features = ["extension-module", "abi3-py311"] }
 numpy = "0.24"

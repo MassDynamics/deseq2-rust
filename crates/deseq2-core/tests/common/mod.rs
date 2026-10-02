@@ -34,14 +34,21 @@ impl Table {
             .has_headers(true)
             .from_path(path)
             .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-        let names: Vec<String> = rdr.headers().unwrap().iter().map(|s| s.to_string()).collect();
+        let names: Vec<String> = rdr
+            .headers()
+            .unwrap()
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         let mut cols: HashMap<String, Vec<String>> =
             names.iter().map(|n| (n.clone(), Vec::new())).collect();
         let mut nrow = 0;
         for rec in rdr.records() {
             let rec = rec.unwrap();
             for (i, n) in names.iter().enumerate() {
-                cols.get_mut(n).unwrap().push(rec.get(i).unwrap_or("").to_string());
+                cols.get_mut(n)
+                    .unwrap()
+                    .push(rec.get(i).unwrap_or("").to_string());
             }
             nrow += 1;
         }
@@ -102,6 +109,11 @@ pub fn rel_diff(a: f64, b: f64) -> f64 {
     if a == b {
         return 0.0;
     }
+    // data.table::fwrite prints every subnormal double wrongly (R's 9 * 2^-1074 comes out as
+    // 1.11253692925361e-308, checked in the image), so values below DBL_MIN compare equal.
+    if a.abs() < f64::MIN_POSITIVE && b.abs() < f64::MIN_POSITIVE {
+        return 0.0;
+    }
     (a - b).abs() / a.abs().max(b.abs()).max(1e-300)
 }
 
@@ -127,7 +139,7 @@ pub fn assert_close(label: &str, got: &[f64], want: &[f64], tol: f64) -> f64 {
     }
     assert!(
         worst <= tol,
-        "{label}: max rel diff {worst:e} at {worst_i} (got {} want {})",
+        "{label}: max rel diff {worst:e} at {worst_i} (got {:e} want {:e})",
         got[worst_i],
         want[worst_i]
     );
@@ -155,7 +167,9 @@ pub fn control_specs(run: &str) -> Vec<(String, bool)> {
     }
     let as_vec = |v: &serde_json::Value| -> Vec<String> {
         match v {
-            serde_json::Value::Array(a) => a.iter().map(|s| s.as_str().unwrap().to_string()).collect(),
+            serde_json::Value::Array(a) => {
+                a.iter().map(|s| s.as_str().unwrap().to_string()).collect()
+            }
             s => vec![s.as_str().unwrap().to_string()],
         }
     };
@@ -180,7 +194,10 @@ pub fn deseq_run(run: &str) -> DeseqRun {
     let dir = reference_dir(run);
     let si = Table::read(&dir.join("input_sample_info.csv"));
     let samples = si.str("replicate").to_vec();
-    let cond = manifest(run)["params"]["condition_col"].as_str().unwrap().to_string();
+    let cond = manifest(run)["params"]["condition_col"]
+        .as_str()
+        .unwrap()
+        .to_string();
     let mut vars = vec![Var::Factor(Factor::new(&cond, si.str(&cond)))];
     for (c, numeric) in control_specs(run) {
         vars.push(if numeric {
@@ -229,5 +246,79 @@ pub fn assert_exact(label: &str, got: &[f64], want: &[f64]) {
     for i in 0..got.len() {
         let same = (got[i].is_nan() && want[i].is_nan()) || got[i] == want[i];
         assert!(same, "{label}[{i}]: got {} want {}", got[i], want[i]);
+    }
+}
+
+/// `R NA / TRUE / FALSE` as NaN / 1 / 0.
+pub fn opt_f64(v: &[Option<bool>]) -> Vec<f64> {
+    v.iter()
+        .map(|b| b.map_or(f64::NAN, |b| b as u8 as f64))
+        .collect()
+}
+
+pub fn check_fit(
+    label: &str,
+    f: &deseq2_core::nbtest::TestFit,
+    t: &Table,
+    cooks: &Table,
+    worst: &mut f64,
+) {
+    let p = f.p();
+    let mut chk = |name: &str, got: &[f64]| {
+        *worst = worst.max(assert_close(
+            &format!("{label} {name}"),
+            got,
+            &t.f64(name),
+            1e-8,
+        ));
+    };
+    for (k, c) in f.coef_names.iter().enumerate() {
+        chk(c, &deseq2_core::nbtest::TestFit::column(&f.beta, p, k));
+        chk(
+            &format!("SE_{c}"),
+            &deseq2_core::nbtest::TestFit::column(&f.se, p, k),
+        );
+        if f.kind == deseq2_core::nbtest::TestKind::Wald {
+            chk(
+                &format!("WaldStatistic_{c}"),
+                &deseq2_core::nbtest::TestFit::column(&f.stat, p, k),
+            );
+            chk(
+                &format!("WaldPvalue_{c}"),
+                &deseq2_core::nbtest::TestFit::column(&f.pvalue, p, k),
+            );
+        }
+    }
+    let conv_name = if f.kind == deseq2_core::nbtest::TestKind::Wald {
+        "betaConv"
+    } else {
+        chk("LRTStatistic", &f.stat);
+        chk("LRTPvalue", &f.pvalue);
+        assert_exact(
+            &format!("{label} reducedBetaConv"),
+            &opt_f64(&f.reduced_conv),
+            &opt_f64(&t.bool("reducedBetaConv")),
+        );
+        "fullBetaConv"
+    };
+    assert_exact(
+        &format!("{label} {conv_name}"),
+        &opt_f64(&f.conv),
+        &opt_f64(&t.bool(conv_name)),
+    );
+    assert_exact(&format!("{label} betaIter"), &f.iter, &t.f64("betaIter"));
+    chk("deviance", &f.deviance);
+    chk("maxCooks", &f.max_cooks);
+    let m = f.x.nrow;
+    let samples: Vec<&String> = cooks.names.iter().skip(1).collect();
+    assert_eq!(samples.len(), m);
+    for (j, s) in samples.iter().enumerate() {
+        let got: Vec<f64> = f.cooks.iter().skip(j).step_by(m).copied().collect();
+        *worst = worst.max(assert_close(
+            &format!("{label} cooks {s}"),
+            &got,
+            &cooks.f64(s),
+            1e-8,
+        ));
     }
 }

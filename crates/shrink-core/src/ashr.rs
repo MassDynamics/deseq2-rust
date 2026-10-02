@@ -44,27 +44,44 @@ pub struct AshrFit {
 
 /// `get_exclusions`: `s == 0 | s == Inf | is.na(x) | is.na(s)`.
 pub fn exclusions(x: &[f64], s: &[f64]) -> Vec<bool> {
-    x.iter().zip(s).map(|(x, s)| *s == 0.0 || *s == f64::INFINITY || x.is_nan() || s.is_nan()).collect()
+    x.iter()
+        .zip(s)
+        .map(|(x, s)| *s == 0.0 || *s == f64::INFINITY || x.is_nan() || s.is_nan())
+        .collect()
 }
 
 /// `autoselect.mixsd(data, mult = sqrt(2), mode = 0)`.
 pub fn autoselect_mixsd(x: &[f64], s: &[f64], excluded: &[bool]) -> Result<Vec<f64>, ShrinkError> {
-    let b: Vec<f64> = (0..x.len()).filter(|&i| !excluded[i]).map(|i| x[i] - 0.0).collect();
-    let se: Vec<f64> = (0..x.len()).filter(|&i| !excluded[i]).map(|i| s[i]).collect();
+    let b: Vec<f64> = (0..x.len())
+        .filter(|&i| !excluded[i])
+        .map(|i| x[i] - 0.0)
+        .collect();
+    let se: Vec<f64> = (0..x.len())
+        .filter(|&i| !excluded[i])
+        .map(|i| s[i])
+        .collect();
     if b.is_empty() {
-        return Err(ShrinkError::InvalidInput("ashr: no non-excluded observations".into()));
+        return Err(ShrinkError::InvalidInput(
+            "ashr: no non-excluded observations".into(),
+        ));
     }
     let smin = se.iter().cloned().fold(f64::INFINITY, f64::min) / 10.0;
     let smax = if b.iter().zip(&se).all(|(b, s)| b * b <= s * s) {
         8.0 * smin
     } else {
-        let mx = b.iter().zip(&se).map(|(b, s)| b * b - s * s).fold(f64::NEG_INFINITY, f64::max);
+        let mx = b
+            .iter()
+            .zip(&se)
+            .map(|(b, s)| b * b - s * s)
+            .fold(f64::NEG_INFINITY, f64::max);
         2.0 * mx.sqrt()
     };
     let mult = 2f64.sqrt();
     let npoint = ((smax / smin).log2() / mult.log2()).ceil();
     if !npoint.is_finite() || !(0.0..=1e6).contains(&npoint) {
-        return Err(ShrinkError::Numerical(format!("ashr: grid size not finite ({npoint})")));
+        return Err(ShrinkError::Numerical(format!(
+            "ashr: grid size not finite ({npoint})"
+        )));
     }
     let np = npoint as i64;
     Ok((-np..=0).map(|k| r_pow(mult, k as f64) * smax).collect())
@@ -93,7 +110,9 @@ fn lcd(x: f64, s: f64, sd: f64) -> f64 {
 /// The full ashr path. `x` = MLE log2 fold changes, `s` = their standard errors.
 pub fn ash_shrink(x: &[f64], s: &[f64]) -> Result<AshrFit, ShrinkError> {
     if x.len() != s.len() {
-        return Err(ShrinkError::InvalidInput("ashr: betahat and sebetahat lengths differ".into()));
+        return Err(ShrinkError::InvalidInput(
+            "ashr: betahat and sebetahat lengths differ".into(),
+        ));
     }
     let n_all = x.len();
     let excluded = exclusions(x, s);
@@ -124,7 +143,9 @@ pub fn ash_shrink(x: &[f64], s: &[f64]) -> Result<AshrFit, ShrinkError> {
             lik.set(r, c, v);
         }
     }
-    let nonzero_cols: Vec<bool> = (0..k).map(|c| lik.col(c).iter().cloned().fold(f64::NEG_INFINITY, f64::max) > 0.0).collect();
+    let nonzero_cols: Vec<bool> = (0..k)
+        .map(|c| lik.col(c).iter().cloned().fold(f64::NEG_INFINITY, f64::max) > 0.0)
+        .collect();
     let nz: Vec<usize> = (0..k).filter(|&c| nonzero_cols[c]).collect();
 
     let (mixsqp, pihat) = if nz.len() > 1 {
@@ -147,13 +168,28 @@ pub fn ash_shrink(x: &[f64], s: &[f64]) -> Result<AshrFit, ShrinkError> {
     }
 
     let table = posterior_table(x, s, &excluded, &mixsd, &pi);
-    Ok(AshrFit { mixsd, excluded, lik, lnorm, nonzero_cols, mixsqp, pi, table })
+    Ok(AshrFit {
+        mixsd,
+        excluded,
+        lik,
+        lnorm,
+        nonzero_cols,
+        mixsqp,
+        pi,
+        table,
+    })
 }
 
 /// `prune(g, 1e-10)` then the result columns (`calc_pm`, `calc_psd`, `calc_np`,
 /// `calc_lfdr`, `calc_lfsr`, `calc_svalue`) for a zero-centred normal mixture with weights
 /// `pi` on standard deviations `mixsd` (all > 0, so `ZeroProb` is 0).
-pub fn posterior_table(x: &[f64], s: &[f64], excluded: &[bool], mixsd: &[f64], pi: &[f64]) -> AshrTable {
+pub fn posterior_table(
+    x: &[f64],
+    s: &[f64],
+    excluded: &[bool],
+    mixsd: &[f64],
+    pi: &[f64],
+) -> AshrTable {
     let kept: Vec<usize> = (0..pi.len()).filter(|&c| pi[c] > 1e-10).collect();
     let spi = r_sum(kept.iter().map(|&c| pi[c]));
     let pk: Vec<f64> = kept.iter().map(|&c| pi[c] / spi).collect();
@@ -168,7 +204,9 @@ pub fn posterior_table(x: &[f64], s: &[f64], excluded: &[bool], mixsd: &[f64], p
     let mixmean = r_sum(pk.iter().map(|p| p * 0.0));
     let mixmean2 = r_sum((0..kk).map(|c| pk[c] * (0.0 * 0.0 + sdk[c] * sdk[c])));
     let mixsd_prior = (mixmean2 - mixmean * mixmean).sqrt();
-    let mixcdf0: f64 = (0..kk).map(|c| pk[c] * pnorm(0.0, 0.0, sdk[c], true, false)).sum();
+    let mixcdf0: f64 = (0..kk)
+        .map(|c| pk[c] * pnorm(0.0, 0.0, sdk[c], true, false))
+        .sum();
 
     let mut lpost = vec![0.0; kk];
     let mut pp = vec![0.0; kk];
@@ -208,7 +246,11 @@ pub fn posterior_table(x: &[f64], s: &[f64], excluded: &[bool], mixsd: &[f64], p
         };
         let np = if np < 0.0 { 0.0 } else { np };
         let zp = 0.0;
-        let lfsr = if np > 0.5 * (1.0 - zp) { 1.0 - np } else { np + zp };
+        let lfsr = if np > 0.5 * (1.0 - zp) {
+            1.0 - np
+        } else {
+            np + zp
+        };
         let lfsr = if lfsr < 0.0 { 0.0 } else { lfsr };
         t.posterior_mean.push(pmean);
         t.posterior_sd.push(psdv);

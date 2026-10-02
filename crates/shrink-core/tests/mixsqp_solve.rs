@@ -22,7 +22,10 @@ struct Rec {
 
 fn read_solve(path: &std::path::Path) -> Vec<Rec> {
     let raw = std::fs::read(path).unwrap();
-    let v: Vec<f64> = raw.chunks_exact(8).map(|c| f64::from_le_bytes(c.try_into().unwrap())).collect();
+    let v: Vec<f64> = raw
+        .chunks_exact(8)
+        .map(|c| f64::from_le_bytes(c.try_into().unwrap()))
+        .collect();
     let mut out = Vec::new();
     let mut i = 0;
     while i < v.len() {
@@ -37,7 +40,16 @@ fn read_solve(path: &std::path::Path) -> Vec<Rec> {
         let rhs = take(n);
         let p = take(n);
         let y = take(m);
-        out.push(Rec { sqp: v[i] as usize, qp: v[i + 1] as usize, rc_po: v[i + 4], rc_ge: v[i + 5], b, rhs, p, y });
+        out.push(Rec {
+            sqp: v[i] as usize,
+            qp: v[i + 1] as usize,
+            rc_po: v[i + 4],
+            rc_ge: v[i + 5],
+            b,
+            rhs,
+            p,
+            y,
+        });
         i = o;
     }
     out
@@ -47,7 +59,16 @@ fn bits_rel(a: &[f64], b: &[f64]) -> f64 {
     if a.len() != b.len() {
         return f64::INFINITY;
     }
-    a.iter().zip(b).map(|(x, y)| if x == y { 0.0 } else { ((x - y) / y.abs().max(f64::MIN_POSITIVE)).abs() }).fold(0.0, f64::max)
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| {
+            if x == y {
+                0.0
+            } else {
+                ((x - y) / y.abs().max(f64::MIN_POSITIVE)).abs()
+            }
+        })
+        .fold(0.0, f64::max)
 }
 
 #[test]
@@ -90,7 +111,12 @@ fn mixsqp_solve() {
                     first = Some(format!("q{q}: Rust has only {} QP steps", qp.len()));
                     break;
                 };
-                let (gb, gr, gp, gy) = (bits_rel(&s.b, &r.b), bits_rel(&s.rhs, &r.rhs), bits_rel(&s.p, &r.p), bits_rel(&s.y, &r.y));
+                let (gb, gr, gp, gy) = (
+                    bits_rel(&s.b, &r.b),
+                    bits_rel(&s.rhs, &r.rhs),
+                    bits_rel(&s.p, &r.p),
+                    bits_rel(&s.y, &r.y),
+                );
                 if gb != 0.0 || gr != 0.0 || gp != 0.0 || gy != 0.0 {
                     first = Some(format!("q{q} (it{} qp{} n{}): B {gb:.1e} rhs {gr:.1e} p {gp:.1e} y {gy:.1e} route {:?}", r.sqp, r.qp, r.rhs.len(), s.route));
                     break;
@@ -99,9 +125,16 @@ fn mixsqp_solve() {
             match first {
                 Some(msg) => {
                     path_bad += 1;
-                    println!("PATH {name}: {} R steps, first difference at {msg}", recs.len());
+                    println!(
+                        "PATH {name}: {} R steps, first difference at {msg}",
+                        recs.len()
+                    );
                 }
-                None => println!("PATH {name}: {} steps bit-identical (Rust {})", recs.len(), qp.len()),
+                None => println!(
+                    "PATH {name}: {} steps bit-identical (Rust {})",
+                    recs.len(),
+                    qp.len()
+                ),
             }
         }
     }

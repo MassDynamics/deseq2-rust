@@ -9,7 +9,12 @@
 //!
 //! Constants and statement shapes are copied from Eigen as written, and `min`/`max` keep the
 //! NaN handling that `clamp` would change, so the matching style lints are off here.
-#![allow(clippy::excessive_precision, clippy::approx_constant, clippy::manual_clamp, clippy::assign_op_pattern)]
+#![allow(
+    clippy::excessive_precision,
+    clippy::approx_constant,
+    clippy::manual_clamp,
+    clippy::assign_op_pattern
+)]
 
 const PACKET: usize = 2;
 

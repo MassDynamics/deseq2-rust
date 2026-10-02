@@ -27,10 +27,10 @@
 
 use crate::dense::{getrf, getrs, rcond_from_lu, Mat};
 use crate::eigen;
-use rnum::glibm;
-use rnum::glibm_log1p::log1p;
 use crate::xld::{r_cumsum, r_sum};
 use crate::ShrinkError;
+use rnum::glibm;
+use rnum::glibm_log1p::log1p;
 use rnum::lbfgsb::{optim_bfgs, optimhess, OptimControl};
 use rnum::nmath::{pnorm, qnorm};
 use rnum::optim::uniroot;

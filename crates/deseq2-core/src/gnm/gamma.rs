@@ -16,12 +16,10 @@
 // diffed against the C, and the Stirling `S*` constants likewise.
 #![allow(clippy::excessive_precision)]
 
-use crate::gnm::G;
 use crate::gnm::arith::{fmax2, fmin2, r_pow_di};
-use crate::gnm::consts::{
-    M_2PI, M_LN2, M_LN_2PI, M_LN_SQRT_2PI, M_LN_SQRT_PI_D2, M_LOG10_2, M_PI,
-};
+use crate::gnm::consts::{M_2PI, M_LN2, M_LN_2PI, M_LN_SQRT_2PI, M_LN_SQRT_PI_D2, M_LOG10_2, M_PI};
 use crate::gnm::dpq::{r_d_0, r_d_1, r_d_exp, r_forceint, r_log1_exp};
+use crate::gnm::G;
 
 // ---------------------------------------------------------------------------------------
 // chebyshev.c

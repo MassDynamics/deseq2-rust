@@ -77,7 +77,12 @@ fn ashr_golden() {
             let r_it = qp.f("sqp_iter");
             let r_sqp0 = r_it.iter().filter(|v| **v == 0.0).count();
             let mut route_mis = 0;
-            for (q, step) in ms.qp.iter().enumerate().take(r_sqp0.min(ms.qp.iter().filter(|s| s.sqp_iter == 0).count())) {
+            for (q, step) in ms
+                .qp
+                .iter()
+                .enumerate()
+                .take(r_sqp0.min(ms.qp.iter().filter(|s| s.sqp_iter == 0).count()))
+            {
                 let r_approx = r_ok[q] == 0.0;
                 if r_approx != (step.route == SolveRoute::Approx) {
                     route_mis += 1;
@@ -86,7 +91,9 @@ fn ashr_golden() {
             let sqp_r = Table::read(&p("trace_sqp")).nrow;
 
             // KKT certificate
-            let nz: Vec<usize> = (0..fit.nonzero_cols.len()).filter(|&c| fit.nonzero_cols[c]).collect();
+            let nz: Vec<usize> = (0..fit.nonzero_cols.len())
+                .filter(|&c| fit.nonzero_cols[c])
+                .collect();
             let mut sub = Mat::zeros(fit.lik.nrow, nz.len());
             for (cc, &c) in nz.iter().enumerate() {
                 sub.col_mut(cc).copy_from_slice(fit.lik.col(c));
@@ -98,7 +105,10 @@ fn ashr_golden() {
             let (g_rust, gmin_rust, stat_rust) = kkt(&sub, &ms.x);
             let (g_r, gmin_r, _) = kkt(&sub, &x_r);
             // Frank-Wolfe gap g.x - min_j g_j bounds f(x) - f* on the simplex (convex f)
-            let fw = |g: &[f64], x: &[f64]| g.iter().zip(x).map(|(a, b)| a * b).sum::<f64>() - g.iter().cloned().fold(f64::INFINITY, f64::min);
+            let fw = |g: &[f64], x: &[f64]| {
+                g.iter().zip(x).map(|(a, b)| a * b).sum::<f64>()
+                    - g.iter().cloned().fold(f64::INFINITY, f64::min)
+            };
             let fw_rust = fw(&g_rust, &ms.x);
             let fw_r = fw(&g_r, &x_r);
             assert!(ms.converged, "{cmp}: mixsqp did not converge");
@@ -171,7 +181,10 @@ fn ashr_golden() {
                 assert!(v <= TOL, "{cmp}: {k} gap {v:e} > {TOL:e}");
             }
             // certificate: Rust is as close to optimal as R's own answer (same FW gap order)
-            assert!(fw_rust <= 2.0 * fw_r + 1e-9, "{cmp}: Rust FW gap {fw_rust:e} vs R {fw_r:e}");
+            assert!(
+                fw_rust <= 2.0 * fw_r + 1e-9,
+                "{cmp}: Rust FW gap {fw_rust:e} vs R {fw_r:e}"
+            );
             assert_eq!(route_mis, 0, "{cmp}: solve routes differ from R's trace");
         }
     }

@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! apeglm against the R golden corpus (`reference-shrink/*_shrink_apeglm*`).
 //!
 //! Every intermediate is compared and its measured gap printed (`--nocapture`). The final
@@ -7,7 +8,7 @@ mod common;
 use common::*;
 use shrink_core::apeglm::{shrink_apeglm, NbRow, SIGMA};
 use shrink_core::dense::Mat;
-use std::path::PathBuf;
+use std::path::Path;
 
 struct Inputs {
     ids: std::collections::HashMap<String, usize>,
@@ -19,7 +20,7 @@ struct Inputs {
     se: Vec<f64>,
 }
 
-fn load(run: &PathBuf, cmp: &str) -> Inputs {
+fn load(run: &Path, cmp: &str) -> Inputs {
     let ct = Table::read(&run.join("shrink_counts.csv"));
     let samples: Vec<String> = ct.header[1..].to_vec();
     let g = ct.nrow;
@@ -56,7 +57,7 @@ fn load(run: &PathBuf, cmp: &str) -> Inputs {
     }
 }
 
-fn scalars(run: &PathBuf) -> serde_json::Value {
+fn scalars(run: &Path) -> serde_json::Value {
     let s = std::fs::read_to_string(run.join("reference.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&s).unwrap();
     v["scalars"].clone()

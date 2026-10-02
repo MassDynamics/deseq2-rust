@@ -42,7 +42,10 @@ pub fn cmps(run: &PathBuf, kind: &str) -> Vec<String> {
         .unwrap()
         .filter_map(|e| e.ok())
         .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter_map(|f| f.strip_suffix(&format!("_{kind}_final.csv")).map(|s| s.to_string()))
+        .filter_map(|f| {
+            f.strip_suffix(&format!("_{kind}_final.csv"))
+                .map(|s| s.to_string())
+        })
         .collect();
     v.sort();
     v
@@ -57,9 +60,18 @@ pub struct Table {
 
 impl Table {
     pub fn read(path: &PathBuf) -> Table {
-        let mut rdr = csv::ReaderBuilder::new().has_headers(true).from_path(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-        let header: Vec<String> = rdr.headers().unwrap().iter().map(|s| s.to_string()).collect();
-        let mut cols: HashMap<String, Vec<String>> = header.iter().map(|h| (h.clone(), Vec::new())).collect();
+        let mut rdr = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .from_path(path)
+            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let header: Vec<String> = rdr
+            .headers()
+            .unwrap()
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let mut cols: HashMap<String, Vec<String>> =
+            header.iter().map(|h| (h.clone(), Vec::new())).collect();
         let mut nrow = 0;
         for rec in rdr.records() {
             let rec = rec.unwrap();
@@ -71,7 +83,12 @@ impl Table {
         Table { header, cols, nrow }
     }
     pub fn f(&self, name: &str) -> Vec<f64> {
-        self.cols.get(name).unwrap_or_else(|| panic!("no column {name}")).iter().map(|s| parse_f64(s)).collect()
+        self.cols
+            .get(name)
+            .unwrap_or_else(|| panic!("no column {name}"))
+            .iter()
+            .map(|s| parse_f64(s))
+            .collect()
     }
     pub fn b(&self, name: &str) -> Vec<bool> {
         self.cols[name].iter().map(|s| s == "TRUE").collect()
@@ -84,7 +101,11 @@ impl Table {
         let mut names: Vec<(usize, String)> = self
             .header
             .iter()
-            .filter_map(|h| h.strip_prefix(prefix).and_then(|r| r.parse::<usize>().ok()).map(|k| (k, h.clone())))
+            .filter_map(|h| {
+                h.strip_prefix(prefix)
+                    .and_then(|r| r.parse::<usize>().ok())
+                    .map(|k| (k, h.clone()))
+            })
             .collect();
         names.sort();
         names.into_iter().map(|(_, h)| self.f(&h)).collect()
@@ -120,5 +141,8 @@ pub fn max_rel(a: &[f64], b: &[f64]) -> f64 {
 }
 
 pub fn max_abs(a: &[f64], b: &[f64]) -> f64 {
-    a.iter().zip(b).map(|(x, y)| (x - y).abs()).fold(0.0, f64::max)
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| (x - y).abs())
+        .fold(0.0, f64::max)
 }

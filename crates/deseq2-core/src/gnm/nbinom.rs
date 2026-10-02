@@ -2,10 +2,10 @@
 //! R `logLike` both evaluate the negative binomial density in the `(size, mu)`
 //! parametrisation through this function.
 
-use super::G;
-use super::dpq::{r_d_0, r_d_1, r_d_exp, r_forceint};
 use super::binom::dbinom_raw;
+use super::dpq::{r_d_0, r_d_1, r_d_exp, r_forceint};
 use super::gamma::{dpois_raw, lgamma1p};
+use super::G;
 
 /// `dnbinom_mu` in `src/nmath/dnbinom.c`: the negative binomial density with `size` and mean
 /// `mu`, or its log when `give_log`. Non-integer `x` (beyond R's `1e-9` relative slack) gives

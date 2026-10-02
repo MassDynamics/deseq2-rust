@@ -54,7 +54,10 @@ impl Factor {
 
     /// The level of each sample.
     pub fn values(&self) -> Vec<&str> {
-        self.codes.iter().map(|&c| self.levels[c].as_str()).collect()
+        self.codes
+            .iter()
+            .map(|&c| self.levels[c].as_str())
+            .collect()
     }
 }
 

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["maturin>=1.8,<2"]
+build-backend = "maturin"
+
+[project]
+name = "deseq2_rust"
+version = "0.1.0"
+description = "DESeq2 differential expression (with normal, apeglm and ashr LFC shrinkage) for the Mass Dynamics platform: Rust core, Python orchestration, no R."
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Mass Dynamics", email = "engineering@massdynamics.com" }]
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.9",
+]
+
+[tool.maturin]
+python-source = "python"
+module-name = "deseq2_rust._core"
+manifest-path = "crates/deseq2-py/Cargo.toml"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

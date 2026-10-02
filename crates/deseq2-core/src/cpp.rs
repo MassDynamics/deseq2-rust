@@ -85,10 +85,7 @@ pub fn dlog_posterior(
     let alpha = exp(log_alpha);
     let cr_term = if use_cr {
         let w: Vec<f64> = mu.iter().map(|&m| recip(recip(m) + alpha)).collect();
-        let dw: Vec<f64> = mu
-            .iter()
-            .map(|&m| -1.0 * pow(recip(m) + alpha, -2.0))
-            .collect();
+        let dw: Vec<f64> = mu.iter().map(|&m| -pow(recip(m) + alpha, -2.0)).collect();
         let b = la::xtwx(x, &w);
         let db = la::xtwx(x, &dw);
         let bi = la::inv(&b).map_err(|e| format!("inv(): {}", e.0))?;
@@ -102,13 +99,14 @@ pub fn dlog_posterior(
     let dg_a1 = digamma(a1);
     let mut s = 0.0;
     for (&yi, &mi) in y.iter().zip(mu) {
-        s += dg_a1 + ln(1.0 + mi * alpha) - mi * alpha * pow(1.0 + mi * alpha, -1.0)
+        s += dg_a1 + ln(1.0 + mi * alpha)
+            - mi * alpha * pow(1.0 + mi * alpha, -1.0)
             - digamma(yi + a1)
             + yi * pow(mi + a1, -1.0);
     }
     let ll = a2 * s;
     let prior_part = if prior.use_prior {
-        -1.0 * (log_alpha - prior.mean) / prior.sigmasq
+        -(log_alpha - prior.mean) / prior.sigmasq
     } else {
         0.0
     };
@@ -171,8 +169,8 @@ pub fn fit_disp(
         if a_propose > 10.0 {
             kappa = (10.0 - a) / dlp;
         }
-        let theta_kappa = -1.0 * lpf(a + kappa * dlp)?;
-        let theta_hat_kappa = -1.0 * lp - kappa * epsilon * r_pow_di(dlp, 2);
+        let theta_kappa = -lpf(a + kappa * dlp)?;
+        let theta_hat_kappa = -lp - kappa * epsilon * r_pow_di(dlp, 2);
         if theta_kappa <= theta_hat_kappa {
             iter_accept += 1;
             a += kappa * dlp;
@@ -294,7 +292,9 @@ pub fn fit_beta(
     let mut beta = beta_init.to_vec();
     let mu_of = |beta: &[f64]| -> Vec<f64> {
         let eta = la::mul_vec(x, beta);
-        (0..m).map(|j| (nf[j] * exp(eta[j])).max(ctl.minmu)).collect()
+        (0..m)
+            .map(|j| (nf[j] * exp(eta[j])).max(ctl.minmu))
+            .collect()
     };
     let mut mu = mu_of(&beta);
     let sqrt_ridge: Vec<f64> = ctl.lambda.iter().map(|l| l.sqrt()).collect();

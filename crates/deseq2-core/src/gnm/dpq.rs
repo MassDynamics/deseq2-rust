@@ -18,8 +18,8 @@
 //! warning channel here, so the ports return `f64::NAN` and nothing else; matching R's
 //! return value is the spec (see the crate `README.md`).
 
-use super::G;
 use super::consts::M_LN2;
+use super::G;
 
 /// `R_D__0` — 0 on the `log_p` scale. (One underscore here: `r_d__0` is not snake case.)
 pub(crate) fn r_d_0(log_p: bool) -> f64 {
@@ -178,4 +178,3 @@ pub(crate) fn r_dt_clog(p: f64, lower_tail: bool, log_p: bool) -> f64 {
 pub(crate) fn r_forceint(x: f64) -> f64 {
     x.round_ties_even()
 }
-

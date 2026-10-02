@@ -1,0 +1,133 @@
+"""deseq2_rust.run against every DESeq2 run in the count golden corpus.
+
+The strict numeric gate is the Rust test ``crates/deseq2-core/tests/results.rs`` (every column
+within 1.2e-12 of the reference); the numbers pass through the Python layer unchanged. This test
+checks what the Python layer owns: row order, GroupId type, column names, NA pattern and the
+ANOVA string shaping, with the numbers at 1e-8 relative.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+import deseq2_rust
+import numpy as np
+import pandas as pd
+import pytest
+
+CORPUS = Path(os.environ.get("MD_COUNT_CORPUS_DIR", Path.home() / "wd/md-count-golden-corpus"))
+RUNS = sorted(
+    p.name
+    for p in (CORPUS / "reference").glob("*deseq2*")
+    if p.name.startswith(("count_", "edge_"))
+)
+if not RUNS:
+    pytest.skip(f"no DESeq2 runs under {CORPUS}", allow_module_level=True)
+
+TOL = 1e-8
+
+
+def manifest(run: str) -> dict:
+    return json.loads((CORPUS / "runs" / run / "manifest.json").read_text())
+
+
+def inputs(run: str):
+    ref = CORPUS / "reference" / run
+    counts = pd.read_csv(ref / "input_counts.csv", dtype={"id": str}).set_index("id")
+    si = pd.read_csv(ref / "input_sample_info.csv", dtype=str)
+    cmp = pd.read_csv(ref / "input_comparisons.csv", dtype=str)
+    m = manifest(run)
+    params = dict(m["params"], entity_type=m["entity_type"], mode=m["mode"])
+    return counts, si, cmp, params
+
+
+def num(s: pd.Series) -> np.ndarray:
+    return pd.to_numeric(s.replace("", np.nan)).to_numpy(dtype=float)
+
+
+def check_numeric(name: str, got: np.ndarray, want: np.ndarray):
+    na_g, na_w = np.isnan(got), np.isnan(want)
+    assert (na_g == na_w).all(), f"{name}: NA pattern differs at {np.flatnonzero(na_g != na_w)[:5]}"
+    a, b = got[~na_w], want[~na_w]
+    gap = np.abs(a - b)
+    # data.table::fwrite prints subnormals wrongly; two subnormals compare equal.
+    tiny = (np.abs(a) < np.finfo(float).tiny) & (np.abs(b) < np.finfo(float).tiny)
+    ok = (gap <= TOL * np.abs(b)) | tiny
+    assert ok.all(), f"{name}: worst rel {np.max(gap[~ok] / np.abs(b[~ok])):.2e}"
+
+
+TABLE_RUNS = [
+    r
+    for r in RUNS
+    if manifest(r)["status"] != "error"
+    and (CORPUS / "reference" / r / "reference_output.csv").exists()
+]
+
+
+@pytest.mark.parametrize("run", TABLE_RUNS)
+def test_table_matches_reference_output(run):
+    counts, si, cmp, params = inputs(run)
+    got = deseq2_rust.run(counts, si, cmp, params)
+    anova = params["mode"] == "anova"
+    want = pd.read_csv(
+        CORPUS / "reference" / run / "reference_output.csv",
+        dtype=str if anova else {"GroupId": np.int64},
+        keep_default_na=not anova,
+    )
+    assert list(got.columns) == list(want.columns)
+    assert len(got) == len(want)
+    if anova:
+        want = want.fillna("")
+        assert list(got["GroupId"]) == list(want["GroupId"])
+        assert list(got["MaxLog2FCPair"]) == list(want["MaxLog2FCPair"])
+        for c in ["AveExpr", "PValue", "AdjPValue", "LRT", "MaxLog2FC"]:
+            assert got[c].map(type).eq(str).all(), f"{c}: not strings"
+    else:
+        assert got["GroupId"].dtype == np.int64
+        assert (got["GroupId"].to_numpy() == want["GroupId"].to_numpy()).all()
+    for c in want.columns:
+        if c in ("GroupId", "MaxLog2FCPair"):
+            continue
+        check_numeric(f"{run} {c}", num(got[c].astype(object)), num(want[c].astype(object)))
+
+
+ERROR_RUNS = [r for r in RUNS if manifest(r)["status"] == "error"]
+
+
+@pytest.mark.parametrize("run", ERROR_RUNS)
+def test_expected_error(run):
+    expected = manifest(run)["expected_error"]
+    if run == "edge_deseq2_non_integer":
+        # Fails in prepare_inputs before inputs are dumped: rebuild it from an ordinary run.
+        counts, si, cmp, params = inputs("count_deseq2_airway_all_ctlnone")
+        counts = counts.astype(float)
+        counts.iloc[0, 0] += 0.5
+    else:
+        counts, si, cmp, params = inputs(run)
+    with pytest.raises(ValueError) as e:
+        deseq2_rust.run(counts, si, cmp, params)
+    assert expected in str(e.value)
+
+
+def test_diagnostics_are_consistent_with_the_table():
+    run = "count_deseq2_airway_all_ctlfactor"
+    counts, si, cmp, params = inputs(run)
+    plain = deseq2_rust.run(counts, si, cmp, params)
+    table, diag = deseq2_rust.run(counts, si, cmp, params, diagnostics=True)
+    pd.testing.assert_frame_equal(table, plain)
+    genes = diag["genes"]
+    kept = table.loc[table["AveExpr"].notna(), "GroupId"].astype(str)
+    assert sorted(genes["id"].astype(str)) == sorted(kept)
+    ave = table.set_index(table["GroupId"].astype(str))["AveExpr"]
+    np.testing.assert_array_equal(
+        genes["baseMean"].to_numpy(), ave[genes["id"].astype(str)].to_numpy()
+    )
+    assert len(diag["samples"]) == counts.shape[1]
+
+
+def test_invalid_shrinkage_is_refused():
+    counts, si, cmp, params = inputs("count_deseq2_airway_all_ctlnone")
+    with pytest.raises(ValueError, match="Invalid deseq2_lfc_shrinkage value: 'bogus'"):
+        deseq2_rust.run(counts, si, cmp, dict(params, deseq2_lfc_shrinkage="bogus"))

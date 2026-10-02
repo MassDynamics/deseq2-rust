@@ -57,7 +57,11 @@ pub fn prior_var_simulation(resid: &[f64], df: f64) -> Result<PriorVarSim, Strin
     let mut rng = RRng::set_seed(2);
     let brks: Vec<f64> = (-20..=20).map(|i| i as f64 / 2.0).collect();
     let (bmin, bmax) = (brks[0], brks[brks.len() - 1]);
-    let obs: Vec<f64> = resid.iter().copied().filter(|&o| o > bmin && o < bmax).collect();
+    let obs: Vec<f64> = resid
+        .iter()
+        .copied()
+        .filter(|&o| o > bmin && o < bmax)
+        .collect();
     let grid = seq_len_out(0.0, 8.0, 200);
     let oh = hist(&obs, &brks)?;
     let mut sim_counts = Vec::with_capacity(grid.len());

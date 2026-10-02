@@ -27,26 +27,46 @@ impl Default for Xld {
 }
 
 impl Xld {
-    pub const ZERO: Xld = Xld { neg: false, exp: 0, mant: 0, nonfinite: None };
+    pub const ZERO: Xld = Xld {
+        neg: false,
+        exp: 0,
+        mant: 0,
+        nonfinite: None,
+    };
 
     /// Exact conversion from `f64`.
     pub fn from_f64(x: f64) -> Xld {
         if !x.is_finite() {
-            return Xld { nonfinite: Some(x), ..Xld::ZERO };
+            return Xld {
+                nonfinite: Some(x),
+                ..Xld::ZERO
+            };
         }
         if x == 0.0 {
-            return Xld { neg: x.is_sign_negative(), ..Xld::ZERO };
+            return Xld {
+                neg: x.is_sign_negative(),
+                ..Xld::ZERO
+            };
         }
         let bits = x.to_bits();
         let neg = bits >> 63 == 1;
         let e = ((bits >> 52) & 0x7ff) as i32;
         let f = bits & ((1u64 << 52) - 1);
-        let (mut mant, mut exp) = if e == 0 { (f, -1022) } else { (f | (1u64 << 52), e - 1023) };
+        let (mut mant, mut exp) = if e == 0 {
+            (f, -1022)
+        } else {
+            (f | (1u64 << 52), e - 1023)
+        };
         // value = mant * 2^(exp - 52); normalise so the top bit is bit 63
         let lz = mant.leading_zeros() as i32;
         mant <<= lz;
         exp -= lz - 11;
-        Xld { neg, exp, mant, nonfinite: None }
+        Xld {
+            neg,
+            exp,
+            mant,
+            nonfinite: None,
+        }
     }
 
     /// Round to `f64` (nearest, ties to even).
@@ -86,18 +106,28 @@ impl Xld {
     #[allow(clippy::should_implement_trait)]
     pub fn add(self, other: Xld) -> Xld {
         if self.nonfinite.is_some() || other.nonfinite.is_some() {
-            return Xld { nonfinite: Some(self.to_f64() + other.to_f64()), ..Xld::ZERO };
+            return Xld {
+                nonfinite: Some(self.to_f64() + other.to_f64()),
+                ..Xld::ZERO
+            };
         }
         if other.mant == 0 {
             if self.mant == 0 {
-                return Xld { neg: self.neg && other.neg, ..Xld::ZERO };
+                return Xld {
+                    neg: self.neg && other.neg,
+                    ..Xld::ZERO
+                };
             }
             return self;
         }
         if self.mant == 0 {
             return other;
         }
-        let (a, b) = if (self.exp, self.mant) >= (other.exp, other.mant) { (self, other) } else { (other, self) };
+        let (a, b) = if (self.exp, self.mant) >= (other.exp, other.mant) {
+            (self, other)
+        } else {
+            (other, self)
+        };
         let big = (a.mant as u128) << 62;
         let mut small = (b.mant as u128) << 62;
         let d = (a.exp - b.exp) as u32;
@@ -110,7 +140,11 @@ impl Xld {
                 small |= 1;
             }
         }
-        let (s, neg) = if a.neg == b.neg { (big + small, a.neg) } else { (big - small, a.neg) };
+        let (s, neg) = if a.neg == b.neg {
+            (big + small, a.neg)
+        } else {
+            (big - small, a.neg)
+        };
         if s == 0 {
             return Xld::ZERO;
         }
@@ -124,7 +158,12 @@ impl Xld {
             if rem > half || (rem == half && (m & 1) == 1) {
                 let (mm, carry) = m.overflowing_add(1);
                 if carry {
-                    return Xld { neg, exp: exp + 1, mant: 1u64 << 63, nonfinite: None };
+                    return Xld {
+                        neg,
+                        exp: exp + 1,
+                        mant: 1u64 << 63,
+                        nonfinite: None,
+                    };
                 }
                 m = mm;
             }
@@ -132,7 +171,12 @@ impl Xld {
         } else {
             (s << (63 - p) as u32) as u64
         };
-        Xld { neg, exp, mant, nonfinite: None }
+        Xld {
+            neg,
+            exp,
+            mant,
+            nonfinite: None,
+        }
     }
 
     pub fn add_f64(self, x: f64) -> Xld {
@@ -142,7 +186,9 @@ impl Xld {
 
 /// R `sum(x)` for a double vector (no NA handling needed by the callers).
 pub fn r_sum<I: IntoIterator<Item = f64>>(xs: I) -> f64 {
-    xs.into_iter().fold(Xld::ZERO, |acc, x| acc.add_f64(x)).to_f64()
+    xs.into_iter()
+        .fold(Xld::ZERO, |acc, x| acc.add_f64(x))
+        .to_f64()
 }
 
 /// R `cumsum(x)`.
@@ -162,7 +208,7 @@ mod tests {
 
     #[test]
     fn roundtrip_and_simple_sums() {
-        for &x in &[1.0, -2.5, 1e-300, 3.141592653589793, 1e300, 5e-324] {
+        for &x in &[1.0, -2.5, 1e-300, std::f64::consts::PI, 1e300, 5e-324] {
             assert_eq!(Xld::from_f64(x).to_f64(), x);
         }
         assert_eq!(r_sum([0.1, 0.2, 0.3]), 0.6);

@@ -44,6 +44,7 @@ dependencies = [
  "rnum",
  "serde",
  "serde_json",
+ "shrink-core",
  "thiserror",
 ]
 
@@ -52,10 +53,8 @@ name = "deseq2-py"
 version = "0.1.0"
 dependencies = [
  "deseq2-core",
- "edger-core",
  "numpy",
  "pyo3",
- "rnum",
  "shrink-core",
 ]
 

@@ -14,7 +14,11 @@ pub struct Mat {
 
 impl Mat {
     pub fn zeros(nrow: usize, ncol: usize) -> Mat {
-        Mat { nrow, ncol, data: vec![0.0; nrow * ncol] }
+        Mat {
+            nrow,
+            ncol,
+            data: vec![0.0; nrow * ncol],
+        }
     }
     pub fn from_col_major(nrow: usize, ncol: usize, data: Vec<f64>) -> Mat {
         assert_eq!(data.len(), nrow * ncol);
@@ -334,7 +338,14 @@ fn getrf2(a: &mut [f64], off: usize, lda: usize, m: usize, n: usize, ipiv: &mut 
             }
         }
     }
-    let iinfo = getrf2(a, off + ix(lda, n1, n1), lda, m - n1, n2, &mut ipiv[n1..m.min(n)]);
+    let iinfo = getrf2(
+        a,
+        off + ix(lda, n1, n1),
+        lda,
+        m - n1,
+        n2,
+        &mut ipiv[n1..m.min(n)],
+    );
     if info == 0 && iinfo > 0 {
         info = iinfo + n1;
     }
@@ -398,7 +409,9 @@ pub fn getrs(f: &Mat, ipiv: &[usize], b: &mut [f64]) {
 /// estimates): `1 / (||A||_1 ||A^-1||_1)`.
 pub fn rcond_from_lu(a: &Mat, f: &Mat, ipiv: &[usize]) -> f64 {
     let n = a.nrow;
-    let anorm = (0..n).map(|j| a.col(j).iter().map(|v| v.abs()).sum::<f64>()).fold(0.0, f64::max);
+    let anorm = (0..n)
+        .map(|j| a.col(j).iter().map(|v| v.abs()).sum::<f64>())
+        .fold(0.0, f64::max);
     let mut inorm: f64 = 0.0;
     for j in 0..n {
         let mut e = vec![0.0; n];
@@ -420,7 +433,11 @@ mod tests {
         let mut a = Mat::zeros(n, n);
         for j in 0..n {
             for i in 0..n {
-                a.set(i, j, 1.0 / (1.0 + (i as f64 - j as f64).abs()) + if i == j { n as f64 } else { 0.0 });
+                a.set(
+                    i,
+                    j,
+                    1.0 / (1.0 + (i as f64 - j as f64).abs()) + if i == j { n as f64 } else { 0.0 },
+                );
             }
         }
         a

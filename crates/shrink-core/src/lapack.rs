@@ -110,7 +110,11 @@ fn dnrm2(n: usize, x: &[f64], off: usize, inc: usize) -> f64 {
         if amed > 0.0 || amed > f64::MAX || amed.is_nan() {
             let amed = amed.sqrt();
             let asml = asml.sqrt() / ssml;
-            let (ymin, ymax) = if asml > amed { (amed, asml) } else { (asml, amed) };
+            let (ymin, ymax) = if asml > amed {
+                (amed, asml)
+            } else {
+                (asml, amed)
+            };
             scl = 1.0;
             let r = ymin / ymax;
             sumsq = ymax * ymax * (1.0 + r * r);
@@ -394,7 +398,11 @@ fn dlatrs(
     let grow;
     // Column order of the solve: backward for N/Upper and T/Lower.
     let forward = if notran { !upper } else { upper };
-    let order: Vec<usize> = if forward { (0..n).collect() } else { (0..n).rev().collect() };
+    let order: Vec<usize> = if forward {
+        (0..n).collect()
+    } else {
+        (0..n).rev().collect()
+    };
     if notran {
         if tscal != 1.0 {
             grow = 0.0;
@@ -735,7 +743,10 @@ pub fn dpocon_l(a: &[f64], n: usize, lda: usize, anorm: f64) -> f64 {
     let mut x = vec![0.0; n];
     let mut v = vec![0.0; n];
     let mut cnorm = vec![0.0; n];
-    let mut st = Lacn2 { isave: [0; 3], isgn: vec![0; n] };
+    let mut st = Lacn2 {
+        isave: [0; 3],
+        isgn: vec![0; n],
+    };
     let mut ainvnm = 0.0;
     let mut kase = 0;
     let mut normin = false;
@@ -784,7 +795,10 @@ pub fn dgecon_1(a: &[f64], n: usize, lda: usize, anorm: f64) -> f64 {
     let mut v = vec![0.0; n];
     let mut cnorm_l = vec![0.0; n];
     let mut cnorm_u = vec![0.0; n];
-    let mut st = Lacn2 { isave: [0; 3], isgn: vec![0; n] };
+    let mut st = Lacn2 {
+        isave: [0; 3],
+        isgn: vec![0; n],
+    };
     let mut ainvnm = 0.0;
     let mut kase = 0;
     let mut normin = false;
@@ -923,7 +937,16 @@ fn iladlr(m: usize, n: usize, c: &[f64], co: usize, ldc: usize) -> usize {
 
 /// dlarf1f: apply H = I - tau v v^T (v[0] taken as 1, `v` contiguous) to the m x n block of
 /// `c` at `co` from the left or the right.
-fn dlarf1f(left: bool, m: usize, n: usize, v: &[f64], tau: f64, c: &mut [f64], co: usize, ldc: usize) {
+fn dlarf1f(
+    left: bool,
+    m: usize,
+    n: usize,
+    v: &[f64],
+    tau: f64,
+    c: &mut [f64],
+    co: usize,
+    ldc: usize,
+) {
     let mut lastv = 1;
     let mut lastc = 0;
     if tau != 0.0 {
@@ -931,7 +954,11 @@ fn dlarf1f(left: bool, m: usize, n: usize, v: &[f64], tau: f64, c: &mut [f64], c
         while lastv > 1 && v[lastv - 1] == 0.0 {
             lastv -= 1;
         }
-        lastc = if left { iladlc(lastv, n, c, co, ldc) } else { iladlr(m, lastv, c, co, ldc) };
+        lastc = if left {
+            iladlc(lastv, n, c, co, ldc)
+        } else {
+            iladlr(m, lastv, c, co, ldc)
+        };
     }
     if lastc == 0 {
         return;
@@ -1014,7 +1041,16 @@ fn dgebd2(m: usize, n: usize, a: &mut [f64], lda: usize) -> Bidiag {
             taup[i] = dlarfg(n - i - 1, a, ix(i, i + 1), ix(i, (i + 2).min(n - 1)), lda);
             e[i] = a[ix(i, i + 1)];
             let v: Vec<f64> = (0..n - i - 1).map(|k| a[ix(i, i + 1 + k)]).collect();
-            dlarf1f(false, m - i - 1, n - i - 1, &v, taup[i], a, ix(i + 1, i + 1), lda);
+            dlarf1f(
+                false,
+                m - i - 1,
+                n - i - 1,
+                &v,
+                taup[i],
+                a,
+                ix(i + 1, i + 1),
+                lda,
+            );
         } else {
             taup[i] = 0.0;
         }
@@ -1121,7 +1157,11 @@ fn dlasv2(f: f64, g: f64, h: f64) -> (f64, f64, f64, f64, f64, f64) {
             pmax = 2;
             if fa / ga < EPS_E {
                 gasmal = false;
-                let smin = if ha > 1.0 { fa / (ga / ha) } else { (fa / ga) * ha };
+                let smin = if ha > 1.0 {
+                    fa / (ga / ha)
+                } else {
+                    (fa / ga) * ha
+                };
                 r = (smin, ga, 1.0, ft / gt, ht / gt, 1.0);
             }
         }
@@ -1133,7 +1173,11 @@ fn dlasv2(f: f64, g: f64, h: f64) -> (f64, f64, f64, f64, f64, f64) {
             let mm = m * m;
             let tt = t * t;
             let s = (tt + mm).sqrt();
-            let rr = if l == 0.0 { m.abs() } else { (l * l + mm).sqrt() };
+            let rr = if l == 0.0 {
+                m.abs()
+            } else {
+                (l * l + mm).sqrt()
+            };
             let a = 0.5 * (s + rr);
             let smin = ha / a;
             let smax = fa * a;
@@ -1160,7 +1204,11 @@ fn dlasv2(f: f64, g: f64, h: f64) -> (f64, f64, f64, f64, f64, f64) {
         slt = r.4;
         srt = r.5;
     }
-    let (csl, snl, csr, snr) = if swap { (srt, crt, slt, clt) } else { (clt, slt, crt, srt) };
+    let (csl, snl, csr, snr) = if swap {
+        (srt, crt, slt, clt)
+    } else {
+        (clt, slt, crt, srt)
+    };
     let tsign = match pmax {
         1 => sign(1.0, csr) * sign(1.0, csl) * sign(1.0, f),
         2 => sign(1.0, snr) * sign(1.0, csl) * sign(1.0, g),
@@ -1172,7 +1220,16 @@ fn dlasv2(f: f64, g: f64, h: f64) -> (f64, f64, f64, f64, f64, f64) {
 }
 
 /// dlasr('L', 'V', direct) on rows `r0 .. r0+mm` of the `ncol`-column matrix `a`.
-fn dlasr_lv(forward: bool, mm: usize, ncol: usize, c: &[f64], s: &[f64], a: &mut [f64], r0: usize, lda: usize) {
+fn dlasr_lv(
+    forward: bool,
+    mm: usize,
+    ncol: usize,
+    c: &[f64],
+    s: &[f64],
+    a: &mut [f64],
+    r0: usize,
+    lda: usize,
+) {
     if mm <= 1 || ncol == 0 {
         return;
     }
@@ -1409,7 +1466,16 @@ fn dbdsqr_u(
                     d[m] = h * oldcs;
                     e[m - 1] = h * oldsn;
                     if ncvt > 0 {
-                        dlasr_lv(true, mlen, ncvt, &work[w1..], &work[wn..], vt, row(ll), ldvt);
+                        dlasr_lv(
+                            true,
+                            mlen,
+                            ncvt,
+                            &work[w1..],
+                            &work[wn..],
+                            vt,
+                            row(ll),
+                            ldvt,
+                        );
                     }
                     if ncc > 0 {
                         dlasr_lv(true, mlen, ncc, &work[w2..], &work[w3..], c, row(ll), ldc);
@@ -1441,7 +1507,16 @@ fn dbdsqr_u(
                     d[ll] = h * oldcs;
                     e[ll] = h * oldsn;
                     if ncvt > 0 {
-                        dlasr_lv(false, mlen, ncvt, &work[w2..], &work[w3..], vt, row(ll), ldvt);
+                        dlasr_lv(
+                            false,
+                            mlen,
+                            ncvt,
+                            &work[w2..],
+                            &work[w3..],
+                            vt,
+                            row(ll),
+                            ldvt,
+                        );
                     }
                     if ncc > 0 {
                         dlasr_lv(false, mlen, ncc, &work[w1..], &work[wn..], c, row(ll), ldc);
@@ -1478,7 +1553,16 @@ fn dbdsqr_u(
                 }
                 e[m - 1] = f;
                 if ncvt > 0 {
-                    dlasr_lv(true, mlen, ncvt, &work[w1..], &work[wn..], vt, row(ll), ldvt);
+                    dlasr_lv(
+                        true,
+                        mlen,
+                        ncvt,
+                        &work[w1..],
+                        &work[wn..],
+                        vt,
+                        row(ll),
+                        ldvt,
+                    );
                 }
                 if ncc > 0 {
                     dlasr_lv(true, mlen, ncc, &work[w2..], &work[w3..], c, row(ll), ldc);
@@ -1517,7 +1601,16 @@ fn dbdsqr_u(
                     e[ll] = 0.0;
                 }
                 if ncvt > 0 {
-                    dlasr_lv(false, mlen, ncvt, &work[w2..], &work[w3..], vt, row(ll), ldvt);
+                    dlasr_lv(
+                        false,
+                        mlen,
+                        ncvt,
+                        &work[w2..],
+                        &work[w3..],
+                        vt,
+                        row(ll),
+                        ldvt,
+                    );
                 }
                 if ncc > 0 {
                     dlasr_lv(false, mlen, ncc, &work[w1..], &work[wn..], c, row(ll), ldc);
@@ -1574,7 +1667,17 @@ fn dbdsqr_u(
 }
 
 /// dlasdq('U', sqre = 0, nru = 0): dbdsqr followed by dlasdq's own ascending selection sort.
-fn dlasdq_u(n: usize, d: &mut [f64], e: &mut [f64], vt: &mut [f64], ldvt: usize, ncvt: usize, c: &mut [f64], ldc: usize, ncc: usize) -> usize {
+fn dlasdq_u(
+    n: usize,
+    d: &mut [f64],
+    e: &mut [f64],
+    vt: &mut [f64],
+    ldvt: usize,
+    ncvt: usize,
+    c: &mut [f64],
+    ldc: usize,
+    ncc: usize,
+) -> usize {
     let info = dbdsqr_u(n, d, e, vt, ldvt, ncvt, c, ldc, ncc);
     if info != 0 {
         return info;
@@ -1604,8 +1707,20 @@ fn dlasdq_u(n: usize, d: &mut [f64], e: &mut [f64], vt: &mut [f64], ldvt: usize,
 
 /// dlalsd('U') for 1 <= n <= SMLSIZ with nrhs right-hand sides in `b` (n x nrhs, ldb).
 /// Returns (rank, info).
-fn dlalsd_small(n: usize, nrhs: usize, d: &mut [f64], e: &mut [f64], b: &mut [f64], ldb: usize, rcond: f64) -> (usize, usize) {
-    let rcnd = if rcond <= 0.0 || rcond >= 1.0 { EPS_E } else { rcond };
+fn dlalsd_small(
+    n: usize,
+    nrhs: usize,
+    d: &mut [f64],
+    e: &mut [f64],
+    b: &mut [f64],
+    ldb: usize,
+    rcond: f64,
+) -> (usize, usize) {
+    let rcnd = if rcond <= 0.0 || rcond >= 1.0 {
+        EPS_E
+    } else {
+        rcond
+    };
     let mut rank = 0;
     if n == 0 {
         return (0, 0);
@@ -1692,7 +1807,10 @@ pub const DGELSD_SMLSIZ: usize = 25;
 /// dgelsd for a square n x n `a` (column-major, lda = n) and one right-hand side,
 /// 1 <= n <= 25. Returns None when dgelsd reports info != 0 (Armadillo then fails the solve).
 pub fn dgelsd_square(a_in: &[f64], n: usize, rhs: &[f64], rcond: f64) -> Option<Vec<f64>> {
-    assert!((1..=DGELSD_SMLSIZ).contains(&n), "dgelsd_square: n = {n} outside the ported branch");
+    assert!(
+        (1..=DGELSD_SMLSIZ).contains(&n),
+        "dgelsd_square: n = {n} outside the ported branch"
+    );
     let (m, lda, nrhs, ldb) = (n, n, 1, n);
     let mut a = a_in[..n * n].to_vec();
     let mut b = rhs[..n].to_vec();
@@ -1761,7 +1879,10 @@ mod tests {
     fn dgelsd_min_norm_rank_one() {
         let a = [1.0, 1.0, 1.0, 1.0];
         let x = dgelsd_square(&a, 2, &[2.0, 2.0], 2.0 * f64::EPSILON).unwrap();
-        assert!((x[0] - 1.0).abs() < 1e-14 && (x[1] - 1.0).abs() < 1e-14, "{x:?}");
+        assert!(
+            (x[0] - 1.0).abs() < 1e-14 && (x[1] - 1.0).abs() < 1e-14,
+            "{x:?}"
+        );
     }
 
     #[test]

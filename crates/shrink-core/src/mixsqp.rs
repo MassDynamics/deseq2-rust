@@ -128,7 +128,9 @@ fn obj(l: &Mat, w: &[f64], x: &[f64], z: &[f64], e: &[f64]) -> Result<f64, Shrin
     if umin <= 0.0 {
         return Err(ShrinkError::Numerical("mixsqp: objective is -Inf".into()));
     }
-    Ok(-arma_accu((0..u.len()).map(|i| w[i] * (z[i] + rnum::glibm::ln(u[i])))))
+    Ok(-arma_accu(
+        (0..u.len()).map(|i| w[i] * (z[i] + rnum::glibm::ln(u[i]))),
+    ))
 }
 
 fn compute_grad(l: &Mat, w: &[f64], x: &[f64], e: &[f64]) -> (Vec<f64>, Mat) {
@@ -242,13 +244,43 @@ fn activesetqp(
             match kk {
                 None => {
                     let (b, rhs, p, y) = dbg(y);
-                    trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind: 2, k: -1, step: 1.0, b, rhs, p, y });
+                    trace.push(QpStep {
+                        sqp_iter,
+                        qp_iter: iter,
+                        n_ws: i.len(),
+                        a_corr,
+                        route,
+                        rcond,
+                        pnorm_inf: pn,
+                        kind: 2,
+                        k: -1,
+                        step: 1.0,
+                        b,
+                        rhs,
+                        p,
+                        y,
+                    });
                     iter += 1;
                     break;
                 }
                 Some(k) if bb[k] >= -CONVTOL_ACTIVESET => {
                     let (b, rhs, p, y) = dbg(y);
-                    trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind: 3, k: kk.map(|v| v as i64).unwrap_or(-1), step: 1.0, b, rhs, p, y });
+                    trace.push(QpStep {
+                        sqp_iter,
+                        qp_iter: iter,
+                        n_ws: i.len(),
+                        a_corr,
+                        route,
+                        rcond,
+                        pnorm_inf: pn,
+                        kind: 3,
+                        k: kk.map(|v| v as i64).unwrap_or(-1),
+                        step: 1.0,
+                        b,
+                        rhs,
+                        p,
+                        y,
+                    });
                     iter += 1;
                     break;
                 }
@@ -278,7 +310,22 @@ fn activesetqp(
             }
         }
         let (b, rhs, p, y) = dbg(y);
-        trace.push(QpStep { sqp_iter, qp_iter: iter, n_ws: i.len(), a_corr, route, rcond, pnorm_inf: pn, kind, k: k_rec, step: a_rec, b, rhs, p, y });
+        trace.push(QpStep {
+            sqp_iter,
+            qp_iter: iter,
+            n_ws: i.len(),
+            a_corr,
+            route,
+            rcond,
+            pnorm_inf: pn,
+            kind,
+            k: k_rec,
+            step: a_rec,
+            b,
+            rhs,
+            p,
+            y,
+        });
         iter += 1;
     }
     iter
@@ -380,19 +427,25 @@ pub fn singular_values(l: &Mat) -> Vec<f64> {
 pub fn mixsqp_ashr(l: &Mat) -> Result<MixsqpResult, ShrinkError> {
     let (n, m) = (l.nrow, l.ncol);
     if n == 0 || m == 0 {
-        return Err(ShrinkError::InvalidInput("mixsqp: empty likelihood matrix".into()));
+        return Err(ShrinkError::InvalidInput(
+            "mixsqp: empty likelihood matrix".into(),
+        ));
     }
     for r in 0..n {
         let mut mx = 0.0_f64;
         for c in 0..m {
             let v = l.at(r, c);
             if v < 0.0 || !v.is_finite() {
-                return Err(ShrinkError::InvalidInput("mixsqp: L must be finite and non-negative".into()));
+                return Err(ShrinkError::InvalidInput(
+                    "mixsqp: L must be finite and non-negative".into(),
+                ));
             }
             mx = mx.max(v);
         }
         if mx != 1.0 {
-            return Err(ShrinkError::InvalidInput("mixsqp: L rows must have max 1 (ashr scaling)".into()));
+            return Err(ShrinkError::InvalidInput(
+                "mixsqp: L rows must have max 1 (ashr scaling)".into(),
+            ));
         }
     }
     if let TsvdDecision::LowRank { k, sigma_k } = tsvd_decision(l) {
@@ -435,7 +488,15 @@ pub fn mixsqp_ashr(l: &Mat) -> Result<MixsqpResult, ShrinkError> {
         last_gmin = gmin;
         if gmin >= -CONVTOL_SQP {
             converged = true;
-            sqp.push(SqpStep { x_em, obj: f, gmin, y: None, step: None, nqp: 0, nls: 0 });
+            sqp.push(SqpStep {
+                x_em,
+                obj: f,
+                gmin,
+                y: None,
+                step: None,
+                nqp: 0,
+                nls: 0,
+            });
             break;
         }
         let hx = gemv_n(&h, &x);
@@ -443,13 +504,29 @@ pub fn mixsqp_ashr(l: &Mat) -> Result<MixsqpResult, ShrinkError> {
         let mut y = x.clone();
         let nqp = activesetqp(&h, &ghat, &mut y, maxiter_as, it, &mut qp);
         let (nls, a, xnew) = linesearch(f, l, &w, &z, &g, &x, &y, &e)?;
-        sqp.push(SqpStep { x_em, obj: f, gmin, y: Some(y), step: Some(a), nqp, nls });
+        sqp.push(SqpStep {
+            x_em,
+            obj: f,
+            gmin,
+            y: Some(y),
+            step: Some(a),
+            nqp,
+            nls,
+        });
         x = xnew;
     }
     // x <- x/sum(x) (R sum: long double)
     let s = r_sum(x.iter().cloned());
     let xn: Vec<f64> = x.iter().map(|v| v / s).collect();
-    Ok(MixsqpResult { x: xn, em_iterates, sqp, qp, converged, grad: last_g, gmin: last_gmin })
+    Ok(MixsqpResult {
+        x: xn,
+        em_iterates,
+        sqp,
+        qp,
+        converged,
+        grad: last_g,
+        gmin: last_gmin,
+    })
 }
 
 /// The mixsqp objective `f(x) = -sum_i w_i log((L x)_i + eps)` with `w = 1/n`, exposed for
@@ -469,7 +546,9 @@ pub fn kkt(l: &Mat, x: &[f64]) -> (Vec<f64>, f64, f64) {
     let w = vec![1.0 / (n as f64); n];
     let e = vec![EPS_ASHR; n];
     let (g, _) = compute_grad(l, &w, x, &e);
-    let sup: Vec<usize> = (0..x.len()).filter(|&k| x[k] > ZERO_THRESHOLD_SOLUTION).collect();
+    let sup: Vec<usize> = (0..x.len())
+        .filter(|&k| x[k] > ZERO_THRESHOLD_SOLUTION)
+        .collect();
     let gmin = 1.0 + g.iter().cloned().fold(f64::INFINITY, f64::min);
     let comp = sup.iter().map(|&k| (g[k] + 1.0).abs()).fold(0.0, f64::max);
     (g, gmin, comp)

@@ -10,6 +10,7 @@ license.workspace = true
 thiserror = { workspace = true }
 rnum = { workspace = true }
 edger-core = { workspace = true }
+shrink-core = { path = "../shrink-core" }
 
 [dev-dependencies]
 csv = "1"

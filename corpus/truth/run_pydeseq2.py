@@ -10,11 +10,10 @@ Directional comparison only; pydeseq2 is a re-implementation, not a port.
 import json
 import os
 import sys
-from multiprocessing import Pool
 import warnings
+from multiprocessing import Pool
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.default_inference import DefaultInference
@@ -71,7 +70,7 @@ def run_one(d: Path):
 def safe(n):
     try:
         return n, run_one(CORPUS / n)
-    except Exception as e:  # keep going, report at the end
+    except Exception as e:  # noqa: BLE001  keep going, report at the end
         return n, f"FAIL {e!r}"
 
 

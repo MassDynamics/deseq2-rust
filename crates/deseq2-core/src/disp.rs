@@ -23,7 +23,9 @@ pub const MIN_DISP: f64 = 1e-8;
 pub fn size_factors(counts: &[f64], m: usize) -> Result<Vec<f64>, String> {
     let n = counts.len() / m;
     let logc: Vec<f64> = counts.iter().map(|&c| ln(c)).collect();
-    let lgm: Vec<f64> = (0..n).map(|g| ext::row_mean(&logc[g * m..(g + 1) * m])).collect();
+    let lgm: Vec<f64> = (0..n)
+        .map(|g| ext::row_mean(&logc[g * m..(g + 1) * m]))
+        .collect();
     if lgm.iter().all(|v| v.is_infinite()) {
         return Err(
             "every gene contains at least one zero, cannot compute log geometric means".into(),
@@ -43,7 +45,11 @@ pub fn size_factors(counts: &[f64], m: usize) -> Result<Vec<f64>, String> {
 /// `counts(dds, normalized = TRUE)`: `t(t(counts) / sf)`.
 pub fn normalized(counts: &[f64], sf: &[f64]) -> Vec<f64> {
     let m = sf.len();
-    counts.iter().enumerate().map(|(i, c)| c / sf[i % m]).collect()
+    counts
+        .iter()
+        .enumerate()
+        .map(|(i, c)| c / sf[i % m])
+        .collect()
 }
 
 /// matrixStats `rowVars` for one row: double mean, one refinement pass, then the sum of
@@ -90,9 +96,13 @@ pub fn base_stats(counts: &[f64], sf: &[f64]) -> BaseStats {
     let n = counts.len() / m;
     let norm = normalized(counts, sf);
     BaseStats {
-        base_mean: (0..n).map(|g| ext::row_mean(&norm[g * m..(g + 1) * m])).collect(),
+        base_mean: (0..n)
+            .map(|g| ext::row_mean(&norm[g * m..(g + 1) * m]))
+            .collect(),
         base_var: (0..n).map(|g| row_var(&norm[g * m..(g + 1) * m])).collect(),
-        all_zero: (0..n).map(|g| ext::row_sum(&counts[g * m..(g + 1) * m]) == 0.0).collect(),
+        all_zero: (0..n)
+            .map(|g| ext::row_sum(&counts[g * m..(g + 1) * m]) == 0.0)
+            .collect(),
     }
 }
 
@@ -183,7 +193,10 @@ pub fn gene_est(
     let linear_mu = n_groups(x) == p;
     let mut mu = if linear_mu {
         let lm = linear_model_mu(&norm, m, x)?;
-        lm.iter().enumerate().map(|(i, v)| v * sf[i % m]).collect::<Vec<f64>>()
+        lm.iter()
+            .enumerate()
+            .map(|(i, v)| v * sf[i % m])
+            .collect::<Vec<f64>>()
     } else {
         let mut opt = GlmOptions::standard(p);
         opt.log_like = false;
@@ -475,8 +488,13 @@ pub fn fit_trend(base_mean: &[f64], disp_gene_est: &[f64]) -> Result<DispFunctio
     // localDispersionFit: every useForFit disp is > 1e-6 >= minDisp * 10.
     let lx: Vec<f64> = means.iter().map(|v| ln(*v)).collect();
     let ly: Vec<f64> = disps.iter().map(|v| ln(*v)).collect();
-    let fit = rnum::locfit::locfit(&lx, &ly, Some(&means), &rnum::locfit::LocfitOptions::default())
-        .map_err(|e| format!("locfit: {e}"))?;
+    let fit = rnum::locfit::locfit(
+        &lx,
+        &ly,
+        Some(&means),
+        &rnum::locfit::LocfitOptions::default(),
+    )
+    .map_err(|e| format!("locfit: {e}"))?;
     Ok(DispFunction::Local(Box::new(fit)))
 }
 
@@ -568,7 +586,11 @@ pub fn map_est(
         let y = &counts[g * m..(g + 1) * m];
         let mu = &ge.mu[g * m..(g + 1) * m];
         let gd = ge.disp[g];
-        let mut init = if gd > 0.1 * disp_fit[g] { gd } else { disp_fit[g] };
+        let mut init = if gd > 0.1 * disp_fit[g] {
+            gd
+        } else {
+            disp_fit[g]
+        };
         if init.is_nan() {
             init = disp_fit[g];
         }
@@ -633,8 +655,14 @@ pub fn estimate_dispersions(counts: &[f64], sf: &[f64], x: &Mat) -> Result<Dispe
     let base = base_stats(counts, sf);
     let nz: Vec<bool> = base.all_zero.iter().map(|z| !z).collect();
     let cnz = subset_rows(counts, m, &nz);
-    let bm: Vec<f64> = (0..nz.len()).filter(|&g| nz[g]).map(|g| base.base_mean[g]).collect();
-    let bv: Vec<f64> = (0..nz.len()).filter(|&g| nz[g]).map(|g| base.base_var[g]).collect();
+    let bm: Vec<f64> = (0..nz.len())
+        .filter(|&g| nz[g])
+        .map(|g| base.base_mean[g])
+        .collect();
+    let bv: Vec<f64> = (0..nz.len())
+        .filter(|&g| nz[g])
+        .map(|g| base.base_var[g])
+        .collect();
     let gene = gene_est(&cnz, sf, &bm, &bv, x)?;
     let function = fit_trend(&bm, &gene.disp)?;
     let disp_fit = function.eval(&bm);

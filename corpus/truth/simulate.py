@@ -135,7 +135,7 @@ def simulate(seed, n_genes, groups, n_rep, pi0=0.8, batch=False, covariate=False
         for g in pick:
             j = rng.integers(m)
             f = rng.uniform(10, 50)
-            y[g, j] = int(round(mean[g, j] * f)) + 50
+            y[g, j] = round(mean[g, j] * f) + 50
             outlier_sample[g] = samples[j]
             outlier_factor[g] = f
     truth["outlier"] = outlier_sample != ""

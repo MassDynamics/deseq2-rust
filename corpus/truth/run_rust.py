@@ -93,7 +93,7 @@ def main(argv=None):
         try:
             run_scenario(a.corpus / n, edge_rust, deseq2_rust)
             print(n, "ok", flush=True)
-        except Exception as e:  # report and continue; the exit code carries the failure
+        except Exception as e:  # noqa: BLE001  report and continue; the exit code carries the failure
             bad += 1
             print(n, "FAIL", repr(e), flush=True)
     print(f"rust: {len(names) - bad} / {len(names)} scenarios ok")

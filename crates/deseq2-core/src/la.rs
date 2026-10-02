@@ -1025,7 +1025,9 @@ mod tests {
     fn spd(n: usize, seed: u64) -> Mat {
         let mut s = seed;
         let mut rnd = || {
-            s = s.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            s = s
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             ((s >> 11) as f64) / ((1u64 << 53) as f64) - 0.5
         };
         let x = Mat::from_col_major(n + 3, n, (0..(n + 3) * n).map(|_| rnd()).collect());

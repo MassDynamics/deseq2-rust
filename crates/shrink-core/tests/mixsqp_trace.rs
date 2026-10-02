@@ -21,13 +21,20 @@ fn mixsqp_trace() {
             let obj = tr.f("obj");
             let gmin = tr.f("gmin");
             let step = tr.f("step");
-            println!("== {} {cmp}: R {} SQP iters, Rust {}", run.file_name().unwrap().to_string_lossy(), tr.nrow, ms.sqp.len());
+            println!(
+                "== {} {cmp}: R {} SQP iters, Rust {}",
+                run.file_name().unwrap().to_string_lossy(),
+                tr.nrow,
+                ms.sqp.len()
+            );
             for it in 0..tr.nrow.min(ms.sqp.len()).min(6) {
                 let r_xem: Vec<f64> = xem.iter().map(|c| c[it]).collect();
                 let s = &ms.sqp[it];
                 let gx = max_abs(&s.x_em, &r_xem);
                 let gy = match &s.y {
-                    Some(y) if !ys[0][it].is_nan() => max_abs(y, &ys.iter().map(|c| c[it]).collect::<Vec<_>>()),
+                    Some(y) if !ys[0][it].is_nan() => {
+                        max_abs(y, &ys.iter().map(|c| c[it]).collect::<Vec<_>>())
+                    }
                     _ => f64::NAN,
                 };
                 println!(
@@ -60,7 +67,16 @@ fn qp_steps_one() {
     let fit = ash_shrink(&data.f("x"), &data.f("s")).unwrap();
     let ms = fit.mixsqp.as_ref().unwrap();
     let qp = Table::read(&p("trace_qp"));
-    let (it, nws, rc, ok, pn, kind, k, st) = (qp.f("sqp_iter"), qp.f("n_ws"), qp.f("rcond"), qp.f("noapprox_ok"), qp.f("pnorm_inf"), qp.f("kind"), qp.f("k"), qp.f("step"));
+    let (it, nws, rc, ok, pn, kind, k, st) = (
+        qp.f("sqp_iter"),
+        qp.f("n_ws"),
+        qp.f("rcond"),
+        qp.f("noapprox_ok"),
+        qp.f("pnorm_inf"),
+        qp.f("kind"),
+        qp.f("k"),
+        qp.f("step"),
+    );
     for q in 0..qp.nrow.min(ms.qp.len()).min(45) {
         let r = &ms.qp[q];
         println!(
@@ -73,11 +89,31 @@ fn qp_steps_one() {
     let xn = tr.numbered("xnew");
     for (it, s) in ms.sqp.iter().enumerate() {
         if let Some(y) = &s.y {
-            println!("it{it} y Rust {:?}", y.iter().map(|v| format!("{v:.3e}")).collect::<Vec<_>>());
-            if it < tr.nrow { println!("it{it} y R    {:?}", ys.iter().map(|c| format!("{:.3e}", c[it])).collect::<Vec<_>>()); }
+            println!(
+                "it{it} y Rust {:?}",
+                y.iter().map(|v| format!("{v:.3e}")).collect::<Vec<_>>()
+            );
+            if it < tr.nrow {
+                println!(
+                    "it{it} y R    {:?}",
+                    ys.iter()
+                        .map(|c| format!("{:.3e}", c[it]))
+                        .collect::<Vec<_>>()
+                );
+            }
         }
     }
-    println!("x Rust {:?}", ms.x.iter().map(|v| format!("{v:.3e}")).collect::<Vec<_>>());
-    println!("x R    {:?}", Table::read(&p("mixsqp_x")).f("x").iter().map(|v| format!("{v:.3e}")).collect::<Vec<_>>());
+    println!(
+        "x Rust {:?}",
+        ms.x.iter().map(|v| format!("{v:.3e}")).collect::<Vec<_>>()
+    );
+    println!(
+        "x R    {:?}",
+        Table::read(&p("mixsqp_x"))
+            .f("x")
+            .iter()
+            .map(|v| format!("{v:.3e}"))
+            .collect::<Vec<_>>()
+    );
     let _ = xn;
 }
