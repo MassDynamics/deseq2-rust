@@ -60,6 +60,29 @@ def write_edger_diag(diag: dict, d: Path):
     (d / "scalars.json").write_text(json.dumps(sc, indent=2))
 
 
+def write_deseq2_diag(diag: dict, d: Path, r_diag: Path):
+    """The part of r_deseq2.diag/ that deseq2_rust exposes: samples, genes, scalars, design.
+
+    deseq2_rust gives size factors, dispersions, maxCooks, unshrunk coefficients and SEs. It
+    does not give per-sample Cook's, replace flags, betaConv/betaIter or shrinkage internals,
+    so check_truth skips the certificates that need them. design.csv is the model matrix of the
+    scenario's inputs; it is copied from R's diag only when the coefficient names match, so a
+    different parameterisation leaves it out (and the certificates skip) instead of misaligning.
+    """
+    d.mkdir(exist_ok=True)
+    diag["samples"].to_csv(d / "samples.csv", index=False)
+    names = list(diag["scalars"]["coef_names"])
+    g = diag["genes"].rename(columns={c: f"coef_{c}" for c in names})
+    g.to_csv(d / "genes.csv", index=False)
+    sc = {"results_names": names, "m": len(diag["samples"]), "p": len(names)}
+    (d / "scalars.json").write_text(json.dumps(sc, indent=2))
+    rs = r_diag / "scalars.json"
+    if rs.exists() and json.loads(rs.read_text()).get("results_names") == names:
+        (d / "design.csv").write_text((r_diag / "design.csv").read_text())
+    elif (d / "design.csv").exists():
+        (d / "design.csv").unlink()
+
+
 def run_scenario(d: Path, edge_rust, deseq2_rust):
     p = json.loads((d / "params.json").read_text())
     anova = p["mode"] == "anova"
@@ -71,7 +94,10 @@ def run_scenario(d: Path, edge_rust, deseq2_rust):
         write_edger_diag(diag, d / "rust_edger.diag")
     if deseq2_rust is None:
         return
-    write(deseq2_rust.run(*to_inputs(d, "DESeq2")), d / ("rust_deseq2_anova.csv" if anova else "rust_deseq2.csv"))
+    eng = "deseq2_anova" if anova else "deseq2"
+    table, diag = deseq2_rust.run(*to_inputs(d, "DESeq2"), diagnostics=True)
+    write(table, d / f"rust_{eng}.csv")
+    write_deseq2_diag(diag, d / f"rust_{eng}.diag", d / f"r_{eng}.diag")
     if d.name in MAIN or d.name.startswith("mix_"):
         for s in SHRINKS:
             write(deseq2_rust.run(*to_inputs(d, "DESeq2", s)), d / f"rust_deseq2_{s}.csv")

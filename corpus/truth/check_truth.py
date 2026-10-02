@@ -513,11 +513,21 @@ def cert_deseq2(rep, s, eng="deseq2"):
     if d is None:
         rep.add("certificate", "DESeq2 certificates", s.name, eng, "SKIP", "not exposed")
         return
+    if not (d / "design.csv").exists():
+        rep.add("certificate", "DESeq2 certificates", s.name, eng, "SKIP", "no design.csv in diag")
+        return
     g = pd.read_csv(d / "genes.csv").set_index("id")
     sc = json.loads((d / "scalars.json").read_text())
     X, reps, _ = design_from(d / "design.csv")
     sf = pd.read_csv(d / "samples.csv").set_index("replicate").loc[reps, "size_factor"].to_numpy()
     rn = sc["results_names"]
+    # An engine that does not expose replace flags (deseq2_rust) can only be certified where
+    # DESeq2 replaces nothing: every model-matrix cell below minReplicatesForReplace = 7.
+    min_cell = int(pd.Series([tuple(r) for r in X]).value_counts().min())
+    if "replace" not in g and min_cell >= 7:
+        rep.add("certificate", "DESeq2 certificates", s.name, eng, "SKIP",
+                "replace flags / replaced counts not exposed and replacement is active (cells >= 7)")
+        return
     y = s.counts.loc[g.index, reps].to_numpy(float)
     yfit = y.copy()
     if (d / "replaced_counts.csv").exists():
@@ -550,8 +560,11 @@ def cert_deseq2(rep, s, eng="deseq2"):
             f"max rel={fmt(e)} ({conv.sum()} genes)", f"<= {T['se_rel']}", "genes whose score z <= 1e-4")
     if s.params.get("mode") == "anova":
         return
-    repl = g["replace"].astype(str).str.upper().eq("TRUE").to_numpy()
-    cooks_rep = pd.read_csv(d / "cooks.csv").set_index("id").loc[g.index, reps].to_numpy(float)
+    repl = (g["replace"].astype(str).str.upper().eq("TRUE").to_numpy() if "replace" in g
+            else np.zeros(len(g), bool))
+    has_cooks = (d / "cooks.csv").exists()
+    cooks_rep = (pd.read_csv(d / "cooks.csv").set_index("id").loc[g.index, reps].to_numpy(float)
+                 if has_cooks else None)
     p = X.shape[1]
     arob, cells, big = robust_mom_disp(y / sf, X)
     H = np.einsum("gm,mk,gkl,ml->gm", w, X, cov, X)
@@ -565,16 +578,27 @@ def cert_deseq2(rep, s, eng="deseq2"):
         rep.add("certificate", "Cook's skipped on optim-fallback rows (info)", s.name, eng, "INFO",
                 f"{int(optim_rows.sum())} genes", note="documented: DESeq2 keeps the IRLS hat diagonals after optim")
     keep = ~repl & conv & ~optim_rows
-    e = max_rel(cooks[keep], cooks_rep[keep], floor=1e-8)
-    rep.add("certificate", "Cook's distance recomputed (robust MoM disp, hat diag)", s.name, eng,
-            verdict(e <= T["cooks_rel"]), f"max rel={fmt(e)} ({keep.sum()} genes; refit genes skipped)",
-            f"<= {T['cooks_rel']}")
-    m, cutoff = sc["m"], sc["cooks_cutoff"]
+    elig = cells.isin(big).to_numpy()
+    if has_cooks:
+        e = max_rel(cooks[keep], cooks_rep[keep], floor=1e-8)
+        rep.add("certificate", "Cook's distance recomputed (robust MoM disp, hat diag)", s.name, eng,
+                verdict(e <= T["cooks_rel"]), f"max rel={fmt(e)} ({keep.sum()} genes; refit genes skipped)",
+                f"<= {T['cooks_rel']}")
+    elif elig.any():
+        # Only maxCooks exposed: certify it as the max of the recomputed Cook's over samples in
+        # cells with >= 3 replicates (DESeq2 recordMaxCooks).
+        mc = g["maxCooks"].to_numpy(float)
+        k2 = keep & np.isfinite(mc)
+        e = max_rel(cooks[k2][:, elig].max(axis=1), mc[k2], floor=1e-8)
+        rep.add("certificate", "maxCooks = max recomputed Cook's over cells >= 3", s.name, eng,
+                verdict(e <= T["cooks_rel"]), f"max rel={fmt(e)} ({k2.sum()} genes)", f"<= {T['cooks_rel']}",
+                "per-sample Cook's not exposed")
+    m = sc["m"]
+    cutoff = sc.get("cooks_cutoff", float(stats.f.ppf(0.99, p, m - p)) if m > p else None)
     o = s.out(eng)
     if not (m > p and cutoff is not None and o is not None):
         rep.add("certificate", "Cook's flagging", s.name, eng, "INFO", "not applied (m <= p or no cell with >= 3)")
         return
-    elig = cells.isin(big).to_numpy()
     if not elig.any():
         rep.add("certificate", "Cook's flagging", s.name, eng, "INFO", "no cell with >= 3 samples: maxCooks NA")
         return
@@ -589,7 +613,7 @@ def cert_deseq2(rep, s, eng="deseq2"):
                     f"recall={fmt(float(np.mean(repl[out_g])))} ({out_g.sum()} planted), "
                     f"false flag rate={fmt(float(np.mean(repl[~out_g])))}")
     else:
-        maxc = np.max(cooks_rep[:, elig], axis=1)
+        maxc = np.max(cooks_rep[:, elig], axis=1) if has_cooks else g["maxCooks"].to_numpy(float)
         pna = o.loc[g.index, f"PValue {s.labels[0]}"].isna().to_numpy()
         flag = maxc > cutoff
         agree = float(np.mean(flag == pna))
@@ -623,7 +647,8 @@ def cert_lfc_reparam(rep, s, eng="deseq2"):
     if d is None or o is None or len(s.labels) < 3:
         return
     g = pd.read_csv(d / "genes.csv").set_index("id")
-    repl = g["replace"].astype(str).str.upper().eq("TRUE").to_numpy()
+    repl = (g["replace"].astype(str).str.upper().eq("TRUE").to_numpy() if "replace" in g
+            else np.zeros(len(g), bool))
     sc = json.loads((d / "scalars.json").read_text())
     rn = sc["results_names"]
     base = [r for r in rn if r.startswith("condition_")]
