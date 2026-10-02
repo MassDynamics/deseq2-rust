@@ -232,7 +232,14 @@ fn idamax(x: impl Iterator<Item = f64>) -> usize {
 
 /// LAPACK `dgetrf2` (recursive LU with partial pivoting) on the `m x n` block of `a` starting
 /// at `(r0, c0)`. Pivots are 0-based, relative to the block. Returns the LAPACK `info`.
-fn dgetrf2(a: &mut Mat, r0: usize, c0: usize, m: usize, n: usize, ipiv: &mut [usize]) -> usize {
+pub(crate) fn dgetrf2(
+    a: &mut Mat,
+    r0: usize,
+    c0: usize,
+    m: usize,
+    n: usize,
+    ipiv: &mut [usize],
+) -> usize {
     if m == 0 || n == 0 {
         return 0;
     }

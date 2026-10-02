@@ -14,6 +14,7 @@ pub mod fit;
 pub mod glm;
 mod gnm;
 pub mod la;
+pub mod lbfgsb;
 pub mod linpack;
 pub mod nbtest;
 pub mod prior_var;
