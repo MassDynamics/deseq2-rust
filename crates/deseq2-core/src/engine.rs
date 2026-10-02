@@ -252,7 +252,8 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     let (x, _) = design.model_matrix();
     let p = x.ncol;
 
-    let fb = edger_core::filter::filter_by_expr(&counts, m, &x.data, p);
+    let fb =
+        edger_core::filter::filter_by_expr(&counts, m, &x.data, p).map_err(|e| e.to_string())?;
     let kept_idx: Vec<usize> = (0..ng).filter(|&g| fb.keep[g]).collect();
     if kept_idx.is_empty() {
         return Err("filterByExpr removed every gene. Check input count matrix and sample-size per condition.".into());

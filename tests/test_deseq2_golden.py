@@ -127,6 +127,25 @@ def test_diagnostics_are_consistent_with_the_table():
     assert len(diag["samples"]) == counts.shape[1]
 
 
+@pytest.mark.parametrize(
+    "gene2, expected",
+    [
+        # All-zero sample: edgeR::filterByExpr stops before DESeq2 runs.
+        (0, "library sizes should be greater than zero"),
+        # Sample's only counts sit in a gene filterByExpr drops: DESeq2's size factors stop.
+        (5, "every gene contains at least one zero, cannot compute log geometric means"),
+    ],
+)
+def test_empty_sample_errors_like_production(gene2, expected):
+    # Messages from runDiscovery(de_method = "DESeq2") in md-flexi-r45-local on these inputs.
+    counts, si, cmp, params = inputs("count_deseq2_airway_all_ctlnone")
+    s1 = counts.columns[0]
+    counts[s1] = 0
+    counts.loc["2", s1] = gene2
+    with pytest.raises(ValueError, match=expected):
+        deseq2_rust.run(counts, si, cmp, params)
+
+
 def test_invalid_shrinkage_is_refused():
     counts, si, cmp, params = inputs("count_deseq2_airway_all_ctlnone")
     with pytest.raises(ValueError, match="Invalid deseq2_lfc_shrinkage value: 'bogus'"):
