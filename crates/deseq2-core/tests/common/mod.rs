@@ -133,3 +133,101 @@ pub fn assert_close(label: &str, got: &[f64], want: &[f64], tol: f64) -> f64 {
     );
     worst
 }
+
+/// DESeq2 runs with a reference directory, optionally only those holding `file`.
+pub fn deseq2_runs(file: Option<&str>) -> Vec<String> {
+    let mut v: Vec<String> = std::fs::read_dir(corpus_dir().join("reference"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .filter(|n| n.contains("deseq2"))
+        .filter(|n| file.is_none_or(|f| reference_dir(n).join(f).exists()))
+        .collect();
+    v.sort();
+    v
+}
+
+/// `(column, is_numeric)` for the manifest's `control_cols`.
+pub fn control_specs(run: &str) -> Vec<(String, bool)> {
+    let cc = &manifest(run)["params"]["control_cols"];
+    if cc.is_null() {
+        return vec![];
+    }
+    let as_vec = |v: &serde_json::Value| -> Vec<String> {
+        match v {
+            serde_json::Value::Array(a) => a.iter().map(|s| s.as_str().unwrap().to_string()).collect(),
+            s => vec![s.as_str().unwrap().to_string()],
+        }
+    };
+    as_vec(&cc["Column"])
+        .into_iter()
+        .zip(as_vec(&cc["Type"]))
+        .map(|(c, t)| (c, t == "numerical"))
+        .collect()
+}
+
+/// A DESeq2 run's fitted inputs: the genes kept by `deseq2_filter.csv`, their counts
+/// (row-major, samples in `input_sample_info` order) and the full design.
+pub struct DeseqRun {
+    pub ids: Vec<String>,
+    pub samples: Vec<String>,
+    pub counts: Vec<f64>,
+    pub design: deseq2_core::design::Design,
+}
+
+pub fn deseq_run(run: &str) -> DeseqRun {
+    use deseq2_core::design::{Design, Factor, Var};
+    let dir = reference_dir(run);
+    let si = Table::read(&dir.join("input_sample_info.csv"));
+    let samples = si.str("replicate").to_vec();
+    let cond = manifest(run)["params"]["condition_col"].as_str().unwrap().to_string();
+    let mut vars = vec![Var::Factor(Factor::new(&cond, si.str(&cond)))];
+    for (c, numeric) in control_specs(run) {
+        vars.push(if numeric {
+            Var::Numeric {
+                name: c.clone(),
+                values: si.f64(&c),
+            }
+        } else {
+            Var::Factor(Factor::new(&c, si.str(&c)))
+        });
+    }
+    let design = Design {
+        n: samples.len(),
+        vars,
+    };
+    let cnt = Table::read(&dir.join("input_counts.csv"));
+    let flt = Table::read(&dir.join("deseq2_filter.csv"));
+    let keep: std::collections::HashMap<&str, bool> = flt
+        .str("id")
+        .iter()
+        .zip(flt.bool("keep"))
+        .map(|(i, k)| (i.as_str(), k.unwrap()))
+        .collect();
+    let cols: Vec<Vec<f64>> = samples.iter().map(|s| cnt.f64(s)).collect();
+    let mut ids = Vec::new();
+    let mut counts = Vec::new();
+    for (g, id) in cnt.str("id").iter().enumerate() {
+        if keep[id.as_str()] {
+            ids.push(id.clone());
+            for c in &cols {
+                counts.push(c[g]);
+            }
+        }
+    }
+    DeseqRun {
+        ids,
+        samples,
+        counts,
+        design,
+    }
+}
+
+/// Exact equality of numeric vectors (NA == NA), reporting the first mismatch.
+pub fn assert_exact(label: &str, got: &[f64], want: &[f64]) {
+    assert_eq!(got.len(), want.len(), "{label}: length");
+    for i in 0..got.len() {
+        let same = (got[i].is_nan() && want[i].is_nan()) || got[i] == want[i];
+        assert!(same, "{label}[{i}]: got {} want {}", got[i], want[i]);
+    }
+}

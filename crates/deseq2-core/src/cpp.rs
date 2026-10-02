@@ -22,6 +22,15 @@ fn pow(x: f64, y: f64) -> f64 {
     x.gpow(y)
 }
 
+/// `pow(pow(mu, -1) + alpha, -1)` in the Cox-Reid weights: GCC expands `pow(x, n)` for a
+/// constant integer `n` in [-1, 2] once the sugar exponent is inlined, so there `-1` compiles
+/// to `1.0 / x`. In the `dlog_posterior` sum the same sugar `pow(.., -1)` stays a glibc `pow`
+/// call, and `-2` is always a glibc call. Both measured against the image on every row of the
+/// airway run at three log alphas (lp and dlp bit-identical only with this split).
+fn recip(x: f64) -> f64 {
+    1.0 / x
+}
+
 /// Prior on log dispersion used by the line search and the grid.
 #[derive(Clone, Copy, Debug)]
 pub struct DispPrior {
@@ -44,7 +53,7 @@ pub fn log_posterior(
 ) -> Result<f64, String> {
     let alpha = exp(log_alpha);
     let cr_term = if use_cr {
-        let w: Vec<f64> = mu.iter().map(|&m| pow(pow(m, -1.0) + alpha, -1.0)).collect();
+        let w: Vec<f64> = mu.iter().map(|&m| recip(recip(m) + alpha)).collect();
         let b = la::xtwx(x, &w);
         -0.5 * ln(la::det(&b))
     } else {
@@ -75,10 +84,10 @@ pub fn dlog_posterior(
 ) -> Result<f64, String> {
     let alpha = exp(log_alpha);
     let cr_term = if use_cr {
-        let w: Vec<f64> = mu.iter().map(|&m| pow(pow(m, -1.0) + alpha, -1.0)).collect();
+        let w: Vec<f64> = mu.iter().map(|&m| recip(recip(m) + alpha)).collect();
         let dw: Vec<f64> = mu
             .iter()
-            .map(|&m| -1.0 * pow(pow(m, -1.0) + alpha, -2.0))
+            .map(|&m| -1.0 * pow(recip(m) + alpha, -2.0))
             .collect();
         let b = la::xtwx(x, &w);
         let db = la::xtwx(x, &dw);

@@ -5,7 +5,7 @@
 //! sizes DESeq2 uses (n samples by p <= ~8 coefficients), so the results are bit-identical:
 //! `x.t() * B` is reference `dgemm('T','N')` (or `dgemv('T')` when one side is a vector),
 //! `det()` / `inv()` take Armadillo's closed forms for N <= 3 and LAPACK `dgetrf2` /
-//! `dsytf2` + `dsytri` otherwise, `qr_econ()` is `dgeqr2` + `dorg2r` with LAPACK 3.12's
+//! `dgetri` otherwise, `qr_econ()` is `dgeqr2` + `dorg2r` with LAPACK 3.12's
 //! `DLARF1F`, and `solve()` on the triangular `R` is `dtrtrs`.
 
 /// Column-major dense matrix.
@@ -433,10 +433,80 @@ pub fn inv(a: &Mat) -> Result<Mat, InvError> {
     if out.is_triu() || out.is_tril() {
         return Err(InvError("inv(): triangular path not ported"));
     }
-    if is_approx_sym(&out) {
+    // `sym_helper::is_approx_sym(out, 100)`: the second argument is a minimum size, so the
+    // symmetric path only applies from 100 x 100 up.
+    if n >= 100 && is_approx_sym(&out) {
         return inv_sym(out);
     }
-    Err(InvError("inv(): general (dgetri) path not ported"))
+    inv_gen(out)
+}
+
+/// Armadillo's `auxlib::inv`: LAPACK `dgetrf` (`dgetrf2` below the block size 64) then the
+/// unblocked `dgetri` (`dtrti2`, the `dgemv` column sweep, then the column interchanges).
+fn inv_gen(mut a: Mat) -> Result<Mat, InvError> {
+    let n = a.nrow;
+    if n >= 64 {
+        return Err(InvError("inv(): blocked dgetrf/dgetri path not ported"));
+    }
+    let mut ipiv = vec![0usize; n];
+    if dgetrf2(&mut a, 0, 0, n, n, &mut ipiv) != 0 {
+        return Err(InvError("inv(): matrix is singular"));
+    }
+    // dtrtri('Upper', 'Non-unit'): singularity check, then dtrti2.
+    if (0..n).any(|i| a.at(i, i) == 0.0) {
+        return Err(InvError("inv(): matrix is singular"));
+    }
+    for j in 0..n {
+        let ajj_inv = 1.0 / a.at(j, j);
+        *a.at_mut(j, j) = ajj_inv;
+        let ajj = -ajj_inv;
+        // dtrmv('Upper', 'No transpose', 'Non-unit', j, A, A(0..j, j))
+        for jj in 0..j {
+            let temp = a.at(jj, j);
+            if temp != 0.0 {
+                for i in 0..jj {
+                    let v = a.at(i, j) + temp * a.at(i, jj);
+                    *a.at_mut(i, j) = v;
+                }
+                let v = a.at(jj, j) * a.at(jj, jj);
+                *a.at_mut(jj, j) = v;
+            }
+        }
+        // dscal(j, ajj, A(0..j, j))
+        if ajj != 1.0 {
+            for i in 0..j {
+                let v = ajj * a.at(i, j);
+                *a.at_mut(i, j) = v;
+            }
+        }
+    }
+    // Solve inv(A) * L = inv(U), column by column from the right.
+    let mut work = vec![0.0; n];
+    for j in (0..n).rev() {
+        for i in (j + 1)..n {
+            work[i] = a.at(i, j);
+            *a.at_mut(i, j) = 0.0;
+        }
+        // dgemv('N', n, n-j-1, -1, A(:, j+1..), work(j+1..), 1, A(:, j))
+        for jj in (j + 1)..n {
+            let temp = -work[jj];
+            for i in 0..n {
+                let v = a.at(i, j) + temp * a.at(i, jj);
+                *a.at_mut(i, j) = v;
+            }
+        }
+    }
+    for j in (0..n.saturating_sub(1)).rev() {
+        let jp = ipiv[j];
+        if jp != j {
+            for i in 0..n {
+                let t = a.at(i, j);
+                *a.at_mut(i, j) = a.at(i, jp);
+                *a.at_mut(i, jp) = t;
+            }
+        }
+    }
+    Ok(a)
 }
 
 fn inv3(x: &Mat) -> Option<Mat> {
