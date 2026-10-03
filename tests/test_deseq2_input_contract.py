@@ -425,3 +425,54 @@ def test_missing_level_message_names_labels_on_every_path(missing, mode):
     with pytest.raises(ValueError, match="'D' is not a level of condition") as e:
         deseq2_rust.run(c, si, cmp, dict(p, mode=mode))
     assert not any(tok in str(e.value) for tok in ["YJWrq", "Kp3", "Qx9"])
+
+
+@pytest.mark.parametrize("mode", ["discovery", "anova"])
+def test_fit_order_is_numeric_not_bytewise(mode):
+    """Review deseq2 r4, N1 (R3-m2): dcast sorts an integer GroupId numerically, so "999" fits before "1000".
+
+    The ids of ``_base`` are all four digits, where numeric and bytewise order agree, so the
+    existing order test cannot tell them apart. Here run ``a`` has ids 500..3499 (bytewise puts
+    "1000" before "500"); run ``b`` has the same rows under ids that sort the same both ways. The
+    fit depends on row order at about 1e-6, so a bytewise fit order breaks exact equality.
+    """
+    c, si, cmp, p = _base(ng=3000)
+    p = dict(p, mode=mode)
+    a_ids = [str(500 + g) for g in range(len(c))]
+    b_ids = [str(10000 + g) for g in range(len(c))]
+    a = c.set_axis(a_ids)
+    b = c.set_axis(b_ids)
+    ta = deseq2_rust.run(a, si, cmp, p)
+    tb = deseq2_rust.run(b, si, cmp, p)
+    key = {s: t for s, t in zip(a_ids, b_ids)}
+    ta["GroupId"] = [key[str(g)] for g in ta["GroupId"]]
+    ta = ta.set_index("GroupId")
+    tb = tb.set_index(tb["GroupId"].astype(str)).drop(columns="GroupId")
+    tb.index.name = "GroupId"
+    pd.testing.assert_frame_equal(ta.loc[tb.index], tb, check_exact=True)
+
+
+def test_diag_genes_follow_the_input_order():
+    """Review deseq2 r4, SE4-m1 (R3-m2): the fit runs in GroupId order and ``_diag`` restores the input order (docstring:
+    "over the genes filterByExpr kept (input order)"), with each row's values unchanged."""
+    c, si, cmp, p = _base(ng=3000)
+    shuf = c.iloc[np.random.default_rng(7).permutation(len(c))]
+    _, want = deseq2_rust.run(c, si, cmp, p, diagnostics=True)
+    _, got = deseq2_rust.run(shuf, si, cmp, p, diagnostics=True)
+    g, w = got["genes"], want["genes"]
+    kept = set(w["id"])
+    assert g["id"].tolist() == [int(i) for i in shuf.index if int(i) in kept]
+    pd.testing.assert_frame_equal(
+        g.set_index("id"), w.set_index("id").loc[g["id"]], check_exact=True
+    )
+
+
+@pytest.mark.parametrize("mode", ["discovery", "anova"])
+def test_levels_differ_is_checked_before_level_existence(mode):
+    """Review deseq2 r4, SE4-m2: checkContrast stops on "Z and Z should be different level names" before it looks the
+    levels up. ``run_deseq2_diag`` calls ``check_levels_differ`` before
+    ``check_comparison_levels`` on both paths; nothing locked the ANOVA one."""
+    c, si, p = _three_groups()
+    cmp = pd.DataFrame({"left": ["B", "Z"], "right": ["A", "Z"]})
+    with pytest.raises(ValueError, match="Z and Z should be different level names"):
+        deseq2_rust.run(c, si, cmp, dict(p, mode=mode))
