@@ -1,6 +1,7 @@
-# Builds a full-pipeline DESeq2 run with m - p = 1 (review r1, stats item 8b) and writes R's
-# results for tests/df1_pipeline.rs. Run in the production image (R 4.5.0, DESeq2 1.50.2):
-#   docker run --rm -v "$PWD":/w -w /w md-flexi-r45-local:latest Rscript make_case.R
+# Builds a DESeq2 run, DESeq() plus results(), with m - p = 1 (review r1, stats item 8b) and
+# writes R's results for tests/df1_pipeline.rs. Run in the production image (R 4.5.0, DESeq2
+# 1.50.2):
+#   docker run --rm --platform linux/amd64 -v "$PWD":/w -w /w md-flexi-r45-local:latest Rscript make_case.R
 # Two conditions x two replicates plus a numeric dose: 4 samples, 3 coefficients, so
 # estimateDispersionsPriorVar takes the df = 1 simulation (rchisq's gamma GS branch). Log
 # dispersions scatter around the trend with variance sigma2, chosen so the KL argmin is interior
