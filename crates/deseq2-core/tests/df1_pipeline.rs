@@ -1,8 +1,9 @@
-//! The full pipeline at m - p = 1 (review r1, stats item 8b): `DESeq(dds)` with `~ cond + dose`
-//! on 2 x 2 samples plus a numeric dose (`tests/data/df1_pipeline/make_case.R`, R 4.5.0 + DESeq2
-//! 1.50.2), then `results()` for the condition contrast and the dose coefficient. The prior
-//! variance comes from the df = 1 simulation with an interior argmin (0.7608, not the 0.25
-//! floor), so this gates dispMAP, the outlier rule and the final tables on that path end to end.
+//! `DESeq()` plus `results()` at m - p = 1 (review r1, stats item 8b): `DESeq(dds)` with
+//! `~ cond + dose` on 2 x 2 samples plus a numeric dose (`tests/data/df1_pipeline/make_case.R`,
+//! R 4.5.0 + DESeq2 1.50.2), then `results()` for the condition contrast and the dose
+//! coefficient. The prior variance comes from the df = 1 simulation with an interior argmin
+//! (0.7608, not the 0.25 floor), so this gates dispMAP and the results tables on that path. The
+//! Cook's cutoff is checked as a value only: no cell has 3 samples, so it filters nothing here.
 
 mod common;
 use common::*;
@@ -104,6 +105,13 @@ fn df1_pipeline_matches_r_deseq() {
     };
     for (which, pre) in [(cond, ""), (Which::Name("dose".into()), "dose_")] {
         let r = results(&data, &which, true, 0.1).unwrap();
+        // R: sprintf("%.17g", qf(.99, 3, 1)). No cell here has 3 samples, so the cutoff filters
+        // nothing and only this assertion gates the df = 1 value.
+        assert!(
+            rel_diff(r.cooks_cutoff, 5_403.352_013_738_532) < 1e-12,
+            "cooksCutoff {}",
+            r.cooks_cutoff
+        );
         close(&format!("{pre}lfc"), &r.lfc, &format!("{pre}lfc"));
         close(&format!("{pre}lfcSE"), &r.se, &format!("{pre}lfcSE"));
         close(&format!("{pre}stat"), &r.stat, &format!("{pre}stat"));
