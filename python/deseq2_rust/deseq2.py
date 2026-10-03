@@ -54,6 +54,13 @@ def _is_int_id(g: str) -> bool:
     return g.isascii() and g.removeprefix("-").isdigit()
 
 
+def _group_id_order(ids: list[str]) -> list[int]:
+    """Positions of ``ids`` in GroupId order: numeric when every id is an integer, else bytewise."""
+    if all(_is_int_id(g) for g in ids):
+        return sorted(range(len(ids)), key=lambda i: int(ids[i]))
+    return sorted(range(len(ids)), key=lambda i: ids[i].encode())
+
+
 def _r_character(x) -> list[str]:
     """R's ``as.character`` of each double (``1e5`` is ``"1e+05"``), NA as ""."""
     x = np.asarray(x, dtype=np.float64)
@@ -134,9 +141,13 @@ def run(
     anova = params.get("mode") == "anova"
     alpha = params.get("deseq2_alpha")
     shrink = params.get("deseq2_lfc_shrinkage")
-    gene_ids = [str(g) for g in counts.index]
+    # dcast orders the rows by GroupId and production fits in that order whatever the metadata
+    # order; the fit depends on it at about 1e-6 (review deseq2 r3, R3-m2).
+    input_ids = [str(g) for g in counts.index]
+    fit_order = _group_id_order(input_ids)
+    gene_ids = [input_ids[i] for i in fit_order]
     res = _core.deseq2_pipeline(
-        np.ascontiguousarray(mat),
+        np.ascontiguousarray(mat[fit_order]),
         gene_ids,
         sample_ids,
         cc,
@@ -151,11 +162,7 @@ def run(
     )
 
     if anova:
-        # runDESeq2ANOVAImpl merges on the integer GroupId: numeric order.
-        if all(_is_int_id(g) for g in gene_ids):
-            order = sorted(range(len(gene_ids)), key=lambda i: int(gene_ids[i]))
-        else:
-            order = sorted(range(len(gene_ids)), key=lambda i: gene_ids[i].encode())
+        # runDESeq2ANOVAImpl merges on the integer GroupId: numeric order, the fit's order.
         labels = res["anova_labels"]
         table = pd.DataFrame(
             {
@@ -168,7 +175,6 @@ def run(
                 "MaxLog2FC": res["max_log2fc"],
             }
         )
-        table = table.iloc[order].reset_index(drop=True)
         for c in ["AveExpr", "PValue", "AdjPValue", "LRT", "MaxLog2FC"]:
             table[c] = _r_character(table[c])
         table["GroupId"] = table["GroupId"].astype(str)
@@ -178,16 +184,17 @@ def run(
             for s in PAIR_STATS:
                 out[f"{s} {p['label']}"] = p[s]
         out["AveExpr"] = res["ave_expr"]
-        table = pd.DataFrame(out)
+        # left_join onto the features metadata: the input order.
+        table = pd.DataFrame(out).iloc[np.argsort(fit_order)].reset_index(drop=True)
         # type_convert(out, "integer", "GroupId"), when every id is an integer.
         if all(_is_int_id(g) for g in table["GroupId"]):
             table["GroupId"] = table["GroupId"].astype(np.int64)
     if diagnostics:
-        return table, _diag(res, gene_ids, sample_ids)
+        return table, _diag(res, gene_ids, sample_ids, fit_order)
     return table
 
 
-def _diag(res: dict, gene_ids: list[str], sample_ids: list[str]) -> dict:
+def _diag(res: dict, gene_ids: list[str], sample_ids: list[str], fit_order: list[int]) -> dict:
     """The fit's intermediates over the genes filterByExpr kept (input order).
 
     ``samples``: replicate, size_factor. ``genes``: id, baseMean, baseVar, dispGeneEst, dispFit,
@@ -216,6 +223,8 @@ def _diag(res: dict, gene_ids: list[str], sample_ids: list[str]) -> dict:
         genes[c] = d["beta"][:, k]
     for k, c in enumerate(d["coef_names"]):
         genes[f"SE_{c}"] = d["se"][:, k]
+    # The fit runs in GroupId order; report the kept genes in input order.
+    genes = genes.iloc[np.argsort([fit_order[i] for i in d["kept_idx"]])].reset_index(drop=True)
     scalars = {
         "coef_names": list(d["coef_names"]),
         "shrink_nonconverged": list(d["shrink_nonconverged"]),

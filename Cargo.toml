@@ -12,8 +12,8 @@ license = "GPL-3.0-or-later"
 thiserror = "2"
 # edge-rust pinned to a recorded commit (review r1, D-1): an edge-rust change can no longer
 # break this build silently. Bump the rev deliberately and re-run the gate.
-rnum = { git = "file:///Users/giuseppeinfusini/wd/md-repos/edge-rust", rev = "b57c023f6e8bd24797f084ca8a2abf7c485c3b35" }
-edger-core = { git = "file:///Users/giuseppeinfusini/wd/md-repos/edge-rust", rev = "b57c023f6e8bd24797f084ca8a2abf7c485c3b35" }
+rnum = { git = "file:///Users/giuseppeinfusini/wd/md-repos/edge-rust", rev = "0f023413517212303e36dd9e765e675d267865a7" }
+edger-core = { git = "file:///Users/giuseppeinfusini/wd/md-repos/edge-rust", rev = "0f023413517212303e36dd9e765e675d267865a7" }
 
 [profile.release]
 opt-level = 3

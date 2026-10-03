@@ -147,7 +147,8 @@ def test_near_singular_numeric_control_is_refused(scale, rcond):
 @pytest.mark.parametrize("scale,refused", [(5.2405e14, False), (5.2406e14, True)])
 def test_near_singular_boundary_matches_production(scale, refused):
     """Review deseq2 r2, m-4: production's boundary is s* = 5.24055976686521e14; the port refuses
-    exactly where it does. Just below s* both run but the numbers differ (rcond 2e-16 to 4e-16 is
+    on the same side of it at both brackets (about 2e-5 relative apart). Just below s* both run
+    but the numbers differ (rcond 2e-16 to 4e-16 is
     beyond what the port reproduces); a tighter guard would refuse runs production makes."""
     c, si, cmp, p = _base(ng=300)
     si["dose"] = np.array([1, 2, 1.3, 1.5, 2.5, 3]) * scale
@@ -288,19 +289,24 @@ def test_double_minus_id_does_not_crash():
     assert str(t["GroupId"].iloc[0]) == "--5"
 
 
-def test_int_and_string_ids_are_duplicates():
-    """Review deseq2 r2 nit: 1001 and "1001" both become GroupId 1001, so they are one id."""
+@pytest.mark.parametrize("axis", ["gene", "sample"])
+def test_int_and_string_ids_are_duplicates(axis):
+    """Review deseq2 r2 nit: 1001 and "1001" both become GroupId 1001, so they are one id; the
+    same holds for sample ids (r3 nit)."""
     c, si, cmp, p = _base(ng=40)
-    c.index = pd.Index([1001, "1001"] + list(c.index[2:]), dtype=object)
-    with pytest.raises(ValueError, match="duplicate gene ids"):
+    if axis == "gene":
+        c.index = pd.Index([1001, "1001"] + list(c.index[2:]), dtype=object)
+    else:
+        c.columns = pd.Index([7, "7"] + list(c.columns[2:]), dtype=object)
+    with pytest.raises(ValueError, match=f"duplicate {axis} ids"):
         deseq2_rust.run(c, si, cmp, p)
 
 
 @pytest.mark.parametrize(
     "left,right,msg",
     [
-        ("Z", "A", "as A is the reference level, was expecting condition_Z_vs_A to be present"),
-        ("B", "Z", "B and Z should be levels of condition such that condition_B_vs_A and"),
+        ("Z", "A", r"'Z' is not a level of condition \(comparison Z - A\)"),
+        ("B", "Z", r"'Z' is not a level of condition \(comparison B - Z\)"),
     ],
 )
 def test_anova_comparison_level_must_exist(left, right, msg):
@@ -340,3 +346,82 @@ def test_apeglm_nonconvergence_is_counted(shrink, want):
     c, si, cmp, p = _base()
     _, diag = deseq2_rust.run(c, si, cmp, {**p, "deseq2_lfc_shrinkage": shrink}, diagnostics=True)
     assert diag["scalars"]["shrink_nonconverged"] == want
+
+
+class _TaggedCore:
+    """Tags every string ``_core.r_as_character`` returns (review deseq2 r3, SE-M1)."""
+
+    def __init__(self, real):
+        self._real = real
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+    def r_as_character(self, values):
+        return ["R:" + s for s in self._real.r_as_character(values)]
+
+
+def test_anova_string_columns_come_from_r_as_character(monkeypatch):
+    """The ANOVA string columns go through ``r_as_character``, not a Python format."""
+    import deseq2_rust.deseq2 as m
+
+    monkeypatch.setattr(m, "_core", _TaggedCore(m._core))
+    c, si, p = _three_groups()
+    cmp = pd.DataFrame({"left": ["B", "C"], "right": ["A", "A"]})
+    t = deseq2_rust.run(c, si, cmp, dict(p, mode="anova"))
+    for col in ["AveExpr", "PValue", "AdjPValue", "LRT", "MaxLog2FC"]:
+        vals = [v for v in t[col] if v != ""]
+        assert vals, f"{col}: no values"
+        assert all(v.startswith("R:") for v in vals), f"{col} bypasses r_as_character"
+
+
+@pytest.mark.parametrize("mode", ["discovery", "anova"])
+def test_fit_does_not_depend_on_the_input_row_order(mode):
+    """Review deseq2 r3, R3-m2 (probes r3_ro_pw_d_shuf, r3b_pw_shuf_*): production fits in dcast
+    (GroupId) order whatever the metadata order, so shuffled rows give the sorted run's numbers."""
+    c, si, cmp, p = _base(ng=3000)
+    p = dict(p, mode=mode)
+    want = deseq2_rust.run(c, si, cmp, p).set_index("GroupId")
+    shuf = c.iloc[np.random.default_rng(7).permutation(len(c))]
+    got = deseq2_rust.run(shuf, si, cmp, p).set_index("GroupId")
+    pd.testing.assert_frame_equal(got.loc[want.index], want, check_exact=True)
+
+
+@pytest.mark.parametrize("case", ["collinear", "all_filtered"])
+def test_int32_check_comes_before_the_filter_and_rank_refusals(case):
+    """Review deseq2 r3, R3-m3 (probes r3_i32_collinear, r3_i32_allfilt): .applyFilterByExpr
+    builds the DGEList on as.integer(round()) counts, so NA counts stop it first."""
+    c, si, cmp, p = _base()
+    if case == "collinear":
+        c.iloc[0, :] = 2_147_483_648.0
+        si["dose"] = [1.0, 1.0, 1.0, 2.0, 2.0, 2.0]
+        p["control_cols"] = {"Column": "dose", "Type": "numerical"}
+    else:
+        c.iloc[:, :] = 1.0
+        c.iloc[0, :] = [2_147_483_648.0, 0, 0, 0, 0, 0]
+    with pytest.raises(ValueError, match="NA counts not allowed"):
+        deseq2_rust.run(c, si, cmp, p)
+
+
+@pytest.mark.parametrize("missing", ["left", "right"])
+@pytest.mark.parametrize("mode", ["discovery", "anova"])
+def test_missing_level_message_names_labels_on_every_path(missing, mode):
+    """Review deseq2 r3, R3-m4: the ANOVA messages and the pairwise right-level message named the
+    encoded tokens or nothing."""
+    c, si, cmp, p = _base()
+    si["condition"] = si["condition"].map({"A": "YJWrq", "B": "Kp3"})
+    enc = {"left": "Kp3", "right": "YJWrq"}
+    enc[missing] = "Qx9"
+    lab = {"left": "B", "right": "A"}
+    lab[missing] = "D"
+    cmp = pd.DataFrame(
+        {
+            "left": [lab["left"]],
+            "right": [lab["right"]],
+            "encoded_left": [enc["left"]],
+            "encoded_right": [enc["right"]],
+        }
+    )
+    with pytest.raises(ValueError, match="'D' is not a level of condition") as e:
+        deseq2_rust.run(c, si, cmp, dict(p, mode=mode))
+    assert not any(tok in str(e.value) for tok in ["YJWrq", "Kp3", "Qx9"])

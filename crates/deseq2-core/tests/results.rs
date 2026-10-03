@@ -270,7 +270,7 @@ fn results_and_shrinkage_match_reference() {
     );
 }
 
-/// `as.character` of a double (15 significant digits, NA as "").
+/// R's `as.character` of a double, NA as "".
 fn r_character(x: f64) -> String {
     if x.is_nan() {
         return String::new();

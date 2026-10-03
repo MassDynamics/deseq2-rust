@@ -223,7 +223,7 @@ pub fn make_name(s: &str) -> String {
 }
 
 /// Row keys of a model matrix: equal rows share a key (`paste0(row, collapse = "_")`, so
-/// values are compared at 15 significant digits and -0 equals 0, as R does).
+/// values are compared as R's `as.character` writes them and -0 equals 0, as R does).
 fn row_keys(x: &Mat) -> Vec<String> {
     (0..x.nrow)
         .map(|i| {

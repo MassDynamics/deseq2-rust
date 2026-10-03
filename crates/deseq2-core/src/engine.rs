@@ -156,6 +156,20 @@ pub struct DeseqDiag {
     pub omnibus: Option<ResultsTable>,
 }
 
+/// Both sides of a comparison must be condition levels. The message names the caller's labels,
+/// never the encoded tokens (review deseq2 r2, m-6; r3, R3-m4).
+fn check_comparison_levels(cond: &Factor, c: &Comparison, col: &str) -> Result<(), String> {
+    for (enc, label) in [(&c.encoded_left, &c.left), (&c.encoded_right, &c.right)] {
+        if !cond.levels.contains(enc) {
+            return Err(format!(
+                "DESeq2 results: '{label}' is not a level of {col} (comparison {} - {}).",
+                c.left, c.right
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn spread(v: &[f64], kept_idx: &[usize], n: usize) -> Vec<f64> {
     let mut out = vec![f64::NAN; n];
     for (k, &g) in kept_idx.iter().enumerate() {
@@ -257,6 +271,12 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     {
         return Err("contrasts can be applied only to factors with 2 or more levels".into());
     }
+    // Production's as.integer(round()) runs on the whole matrix before filterByExpr, so a count
+    // above .Machine$integer.max stops DESeq2 even in a gene filterByExpr drops (review deseq2 r2,
+    // M-2), and before the empty-filter and rank refusals (r3, R3-m3).
+    if counts.iter().any(|v| *v > 2147483647.0) {
+        return Err("NA counts not allowed".into());
+    }
     let (x, _) = design.model_matrix();
     let p = x.ncol;
 
@@ -277,12 +297,6 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     let mut y = Vec::with_capacity(kept_idx.len() * m);
     for &g in &kept_idx {
         y.extend_from_slice(&counts[g * m..(g + 1) * m]);
-    }
-    // Production's as.integer(round()) runs on the whole matrix before filterByExpr, so a count
-    // above .Machine$integer.max stops DESeq2 even in a gene filterByExpr drops (review deseq2 r2,
-    // M-2).
-    if counts.iter().any(|v| *v > 2147483647.0) {
-        return Err("NA counts not allowed".into());
     }
     let fit = deseq(&y, &design, input.anova)?;
     let ave_expr = spread(&fit.base.base_mean, &kept_idx, ng);
@@ -310,6 +324,8 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         };
         let mut lfcs = Vec::new();
         for c in &input.comparisons {
+            crate::results::check_levels_differ(&c.encoded_left, &c.encoded_right)?;
+            check_comparison_levels(&cond, c, &input.condition_col)?;
             let which = Which::Contrast {
                 factor: input.condition_col.clone(),
                 num: c.encoded_left.clone(),
@@ -354,6 +370,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         // The dispatch-contrast results() call production makes first fails on these.
         crate::results::check_alpha(input.alpha)?;
         crate::results::check_levels_differ(left, right)?;
+        check_comparison_levels(&cond, c, &input.condition_col)?;
         let (test, des, relevel_fit) = if cond.levels[0] != *right {
             let f2 = cond
                 .relevel(right)
