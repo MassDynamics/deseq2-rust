@@ -22,13 +22,15 @@ const TOL: f64 = 1e-8;
 #[test]
 fn ashr_golden() {
     let runs = runs("_shrink_ashr");
-    // No corpus fails the test rather than passing it empty (review r1, D-11).
+    // No corpus fails the test rather than passing it empty (review r1, D-11); the run list
+    // comes from index.json, which carries a floor (review overnight r1, SE-m3).
+    let idx = index("_shrink_ashr", "ashr");
     assert_eq!(
-        runs.len(),
-        5,
-        "_shrink_ashr runs in the corpus (set MD_COUNT_CORPUS_DIR)"
+        run_ids(&runs),
+        idx.runs,
+        "_shrink_ashr runs on disk against index.json (set MD_COUNT_CORPUS_DIR)"
     );
-    let mut n_cmp = 0;
+    let mut seen = std::collections::BTreeSet::new();
     let mut worst = std::collections::BTreeMap::<&str, f64>::new();
     let bump = |k: &'static str, v: f64, w: &mut std::collections::BTreeMap<&str, f64>| {
         let e = w.entry(k).or_insert(0.0);
@@ -39,7 +41,7 @@ fn ashr_golden() {
     println!("run cmp | grid L lnorm em | route_mismatch/qp | sqp_it R/Rust | obj_rel gmin_rust | pi_rel | post(Rpi) | e2e pm psd lfsr");
     for run in &runs {
         for cmp in cmps(run, "ashr") {
-            n_cmp += 1;
+            seen.insert((name_of(run), cmp.clone()));
             let p = |s: &str| run.join(format!("{cmp}_ashr_{s}.csv"));
             let data = Table::read(&p("data"));
             let x = data.f("x");
@@ -191,11 +193,10 @@ fn ashr_golden() {
             assert_eq!(route_mis, 0, "{cmp}: solve routes differ from R's trace");
         }
     }
-    println!("worst gaps over {n_cmp} comparisons: {worst:#?}");
+    println!("worst gaps over {} comparisons: {worst:#?}", seen.len());
     // A run that loses its comparison files must not pass quietly (review deseq2 r2, SE-m4).
     assert_eq!(
-        n_cmp,
-        index_cmps("_shrink_ashr", "ashr"),
+        seen, idx.cmps,
         "ashr comparisons on disk against index.json"
     );
 }

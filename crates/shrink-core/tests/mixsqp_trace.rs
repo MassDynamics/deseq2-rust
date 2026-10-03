@@ -10,16 +10,18 @@ use shrink_core::ashr::ash_shrink;
 #[test]
 fn mixsqp_trace() {
     let runs = runs("_shrink_ashr");
-    // No corpus fails the test rather than passing it empty (review r1, D-11).
+    // No corpus fails the test rather than passing it empty (review r1, D-11); the run list
+    // comes from index.json, which carries a floor (review overnight r1, SE-m3).
+    let idx = index("_shrink_ashr", "ashr");
     assert_eq!(
-        runs.len(),
-        5,
-        "_shrink_ashr runs in the corpus (set MD_COUNT_CORPUS_DIR)"
+        run_ids(&runs),
+        idx.runs,
+        "_shrink_ashr runs on disk against index.json (set MD_COUNT_CORPUS_DIR)"
     );
-    let mut n_cmp = 0;
+    let mut seen = std::collections::BTreeSet::new();
     for run in runs {
         for cmp in cmps(&run, "ashr") {
-            n_cmp += 1;
+            seen.insert((name_of(&run), cmp.clone()));
             let p = |s: &str| run.join(format!("{cmp}_ashr_{s}.csv"));
             let data = Table::read(&p("data"));
             let fit = ash_shrink(&data.f("x"), &data.f("s")).unwrap();
@@ -65,8 +67,7 @@ fn mixsqp_trace() {
     }
     // A run that loses its comparison files must not pass quietly (review deseq2 r2, SE-m4).
     assert_eq!(
-        n_cmp,
-        index_cmps("_shrink_ashr", "ashr"),
+        seen, idx.cmps,
         "ashr comparisons on disk against index.json"
     );
 }

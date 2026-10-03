@@ -1,7 +1,7 @@
 //! Golden-corpus helpers shared by the shrink-core integration tests.
 #![allow(dead_code)]
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::path::PathBuf;
 
 /// `MD_COUNT_CORPUS_DIR`, default `~/wd/md-count-golden-corpus`.
@@ -51,24 +51,54 @@ pub fn cmps(run: &PathBuf, kind: &str) -> Vec<String> {
     v
 }
 
-/// Comparisons of `kind` that `reference-shrink/index.json` lists for runs whose id contains
-/// `pattern`. The tests compare this with what they found on disk, so a run that loses its
-/// comparison files fails while a run added to the corpus does not (review deseq2 r3, N2).
-pub fn index_cmps(pattern: &str, kind: &str) -> usize {
+/// What `reference-shrink/index.json` lists for runs whose id contains `pattern`: the run ids,
+/// and the `(run id, comparison tag)` pairs that have a `kind` final table. The tests compare
+/// both sets with what they walked on disk, so a run or comparison file that goes missing fails,
+/// and the floors (5 runs, 11 comparisons, the corpus as of review deseq2 r3) stop a coordinated
+/// removal from the index and the disk passing quietly (review overnight r1, SE-m3 and SE-n1).
+pub struct Index {
+    pub runs: BTreeSet<String>,
+    pub cmps: BTreeSet<(String, String)>,
+}
+
+pub fn index(pattern: &str, kind: &str) -> Index {
     let path = corpus_dir().join("reference-shrink/index.json");
     let s = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let v: serde_json::Value = serde_json::from_str(&s).unwrap();
     let suffix = format!("_{kind}_final.csv");
-    let n = v["runs"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|r| r["run_id"].as_str().unwrap().contains(pattern))
-        .flat_map(|r| r["files"].as_object().unwrap().keys())
-        .filter(|f| f.ends_with(&suffix))
-        .count();
-    assert!(n > 0, "index.json lists no {kind} comparisons");
-    n
+    let mut idx = Index {
+        runs: BTreeSet::new(),
+        cmps: BTreeSet::new(),
+    };
+    for r in v["runs"].as_array().unwrap() {
+        let id = r["run_id"].as_str().unwrap();
+        if !id.contains(pattern) {
+            continue;
+        }
+        idx.runs.insert(id.to_string());
+        for f in r["files"].as_object().unwrap().keys() {
+            if let Some(tag) = f.strip_suffix(&suffix) {
+                idx.cmps.insert((id.to_string(), tag.to_string()));
+            }
+        }
+    }
+    assert!(
+        idx.runs.len() >= 5 && idx.cmps.len() >= 11,
+        "index.json lists {} {pattern} runs and {} {kind} comparisons, below the floor of 5 and 11",
+        idx.runs.len(),
+        idx.cmps.len()
+    );
+    idx
+}
+
+/// A run's id, its directory name.
+pub fn name_of(run: &std::path::Path) -> String {
+    run.file_name().unwrap().to_string_lossy().into_owned()
+}
+
+/// The run ids of `runs`, as a set to compare with `Index::runs`.
+pub fn run_ids(runs: &[PathBuf]) -> BTreeSet<String> {
+    runs.iter().map(|r| name_of(r)).collect()
 }
 
 /// A CSV as named string columns.

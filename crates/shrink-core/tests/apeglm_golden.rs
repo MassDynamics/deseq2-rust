@@ -70,19 +70,21 @@ fn rel1(a: f64, b: f64) -> f64 {
 #[test]
 fn apeglm_matches_r() {
     let runs = runs("_shrink_apeglm");
-    // No corpus fails the test rather than passing it empty (review r1, D-11).
+    // No corpus fails the test rather than passing it empty (review r1, D-11); the run list
+    // comes from index.json, which carries a floor (review overnight r1, SE-m3).
+    let idx = index("_shrink_apeglm", "apeglm");
     assert_eq!(
-        runs.len(),
-        5,
-        "_shrink_apeglm runs in the corpus (set MD_COUNT_CORPUS_DIR)"
+        run_ids(&runs),
+        idx.runs,
+        "_shrink_apeglm runs on disk against index.json (set MD_COUNT_CORPUS_DIR)"
     );
     let mut worst_final: f64 = 0.0;
-    let mut n_cmp = 0;
+    let mut seen = std::collections::BTreeSet::new();
     for run in &runs {
         let name = run.file_name().unwrap().to_string_lossy().into_owned();
         let sc = scalars(run);
         for cmp in cmps(run, "apeglm") {
-            n_cmp += 1;
+            seen.insert((name.clone(), cmp.clone()));
             let inp = load(run, &cmp);
             let p = inp.design.ncol;
             let k = |s: &str| sc[format!("{cmp}_apeglm_{s}")].clone();
@@ -371,8 +373,7 @@ fn apeglm_matches_r() {
     println!("worst final gap over all runs: {worst_final:.2e}");
     // A run that loses its comparison files must not pass quietly (review deseq2 r2, SE-m4).
     assert_eq!(
-        n_cmp,
-        index_cmps("_shrink_apeglm", "apeglm"),
+        seen, idx.cmps,
         "apeglm comparisons on disk against index.json"
     );
 }
