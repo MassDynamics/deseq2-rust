@@ -170,6 +170,13 @@ fn check_comparison_levels(cond: &Factor, c: &Comparison, col: &str) -> Result<(
     Ok(())
 }
 
+/// `checkContrast`'s levels-differ check on the encoded levels, with R's wording around the
+/// caller's labels (review deseq2 r4, N2).
+fn check_comparison_differs(c: &Comparison) -> Result<(), String> {
+    crate::results::check_levels_differ(&c.encoded_left, &c.encoded_right)
+        .map_err(|_| format!("{} and {} should be different level names", c.left, c.right))
+}
+
 fn spread(v: &[f64], kept_idx: &[usize], n: usize) -> Vec<f64> {
     let mut out = vec![f64::NAN; n];
     for (k, &g) in kept_idx.iter().enumerate() {
@@ -324,7 +331,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         };
         let mut lfcs = Vec::new();
         for c in &input.comparisons {
-            crate::results::check_levels_differ(&c.encoded_left, &c.encoded_right)?;
+            check_comparison_differs(c)?;
             check_comparison_levels(&cond, c, &input.condition_col)?;
             let which = Which::Contrast {
                 factor: input.condition_col.clone(),
@@ -369,7 +376,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         let right = &c.encoded_right;
         // The dispatch-contrast results() call production makes first fails on these.
         crate::results::check_alpha(input.alpha)?;
-        crate::results::check_levels_differ(left, right)?;
+        check_comparison_differs(c)?;
         check_comparison_levels(&cond, c, &input.condition_col)?;
         let (test, des, relevel_fit) = if cond.levels[0] != *right {
             let f2 = cond

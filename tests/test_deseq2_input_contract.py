@@ -428,6 +428,21 @@ def test_missing_level_message_names_labels_on_every_path(missing, mode):
 
 
 @pytest.mark.parametrize("mode", ["discovery", "anova"])
+def test_levels_differ_message_names_labels_not_tokens(mode):
+    """Review deseq2 r4, N2 (sibling of R3-m4): checkContrast's "X and X should be different level
+    names" named the encoded tokens. The wording is DESeq2's (oracle: ``results(dds,
+    contrast = c("condition", "B", "B"))``), with the caller's labels in it."""
+    c, si, cmp, p = _base()
+    si["condition"] = si["condition"].map({"A": "YJWrq", "B": "Kp3"})
+    cmp = pd.DataFrame(
+        {"left": ["B"], "right": ["B"], "encoded_left": ["Kp3"], "encoded_right": ["Kp3"]}
+    )
+    with pytest.raises(ValueError, match="B and B should be different level names") as e:
+        deseq2_rust.run(c, si, cmp, dict(p, mode=mode))
+    assert not any(tok in str(e.value) for tok in ["YJWrq", "Kp3"])
+
+
+@pytest.mark.parametrize("mode", ["discovery", "anova"])
 def test_fit_order_is_numeric_not_bytewise(mode):
     """Review deseq2 r4, N1 (R3-m2): dcast sorts an integer GroupId numerically, so "999" fits before "1000".
 
