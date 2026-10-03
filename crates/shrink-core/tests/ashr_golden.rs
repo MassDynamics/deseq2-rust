@@ -22,8 +22,9 @@ const TOL: f64 = 1e-8;
 #[test]
 fn ashr_golden() {
     let runs = runs("_shrink_ashr");
-    // No corpus fails the test rather than passing it empty (review r1, D-11); the run list
-    // comes from index.json, which carries a floor (review overnight r1, SE-m3).
+    // No corpus fails the test rather than passing it empty (review r1, D-11); the run
+    // set expected on disk comes from index.json, which carries a floor (review overnight r1,
+    // SE-m3, r2 SE2-n5).
     let idx = index("_shrink_ashr", "ashr");
     assert_eq!(
         run_ids(&runs),
