@@ -10,6 +10,7 @@ a Rust core with a Python entry point (`deseq2_rust.run`) and no R at run time.
 uv sync
 uv run pytest
 cargo test --release --workspace
+cargo test --workspace   # debug: overflow checks and debug_assert! only run here
 ```
 
 The golden tests read the count corpus at `~/wd/md-count-golden-corpus` (or
@@ -27,10 +28,13 @@ the `rev` here and re-run the gate.
 
 - **Ill-conditioned numeric controls.** Production refuses a design whose `qr.R` has a reciprocal
   condition number below machine epsilon, and the port refuses at the same point with the same
-  message. Just below that boundary (rcond about 2e-16 to 4e-16, for example a dose column scaled
-  to 3e14 to 5.24e14) both run, but the numbers differ: the fit there is noise-dominated and R's
-  result depends on its exact LAPACK rounding. A tighter guard would refuse runs production makes,
-  so the band is documented and its boundary pinned by a test.
+  message. Just above that boundary (for example a dose column scaled to 3e14 to 5.24e14) both run
+  and match, since the port takes Armadillo's approximate solve where production does (review
+  deseq2 r6). The exception: when the IRLS step's rcond sits within about 5% of eps on every
+  iteration, the port's last-bit rounding can make R and the port stop on different iterations, so
+  one returns a table and the other refuses. No probe has hit it.
+- **Near-singular steps above 25 coefficients.** Production approximates such an IRLS step and
+  carries on; the port refuses the run, because only the small `dgelsd` branch is ported.
 - **Float-noise covariates.** A numeric control holding values that differ only in the last bits
   (for example `1.000000000000001` next to `1.0`) can move a gene's statistic by about 1e-7
   relative, because the cell grouping and the fit see those values exactly.

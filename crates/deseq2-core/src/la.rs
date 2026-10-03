@@ -1029,8 +1029,13 @@ pub fn solve_upper(r: &Mat, b: &[f64]) -> Vec<f64> {
 /// `qr_econ` returns (`glue_solve_gen_full`, `solve_trimat_rcond`): `dtrtrs` then
 /// `dtrcon('1','U','N')`. A zero diagonal, or an rcond below eps or NaN, sends the system to
 /// `solve_approx_svd`, LAPACK `dgelsd` with rcond = n * eps, which refuses non-finite input
-/// ("solve(): solution not found"). A 1 x 1 `R` is not triangular to Armadillo and takes the
-/// LU route, which on one element gives the same quotient and an rcond that never fails.
+/// ("solve(): solution not found"; production's message differs, because DESeq2.cpp:356 uses the
+/// bool form, which leaves beta empty, and `x * beta_hat` then throws "matrix multiplication:
+/// incompatible matrix dimensions: {m}x{p} and 0x1"). A 1 x 1 `R` is not triangular to Armadillo
+/// and takes the LU route, which on one element gives the same quotient; its rcond is taken as 1,
+/// exact for normal-range values (Armadillo's dgecon gives 0 at subnormals, 1e-308 or f64::MAX).
+/// Not ported: the band dispatch Armadillo checks first for 32 or more coefficients, and the
+/// dgelsd branch above 25 (refused explicitly).
 pub fn arma_solve_upper(r: &Mat, b: &[f64]) -> Result<Vec<f64>, String> {
     let n = r.nrow;
     let singular = (0..n).any(|k| r.at(k, k) == 0.0);
@@ -1151,5 +1156,94 @@ mod tests {
             arma_solve_upper(&r, &b).unwrap_err(),
             "solve(): solution not found"
         );
+    }
+
+    /// Boundary: diag(1, eps) has dtrcon rcond exactly eps, which Armadillo accepts (`rcond < eps`
+    /// is false), so the plain back substitution must come back: 1 / eps = 2^52. Catches `<=` and
+    /// any threshold above eps; diag(1, 1e-17) (rcond 1e-17 < eps) must fall back and zero the
+    /// second coordinate, which catches any threshold below 1e-17.
+    #[test]
+    fn arma_solve_upper_threshold_is_strictly_below_eps() {
+        let at_eps = Mat::from_col_major(2, 2, vec![1.0, 0.0, 0.0, f64::EPSILON]);
+        assert_eq!(
+            shrink_core::lapack::dtrcon_1u(&at_eps.data, 2, 2),
+            f64::EPSILON
+        );
+        assert_eq!(
+            arma_solve_upper(&at_eps, &[1.0, 1.0]).unwrap(),
+            [1.0, 4503599627370496.0]
+        );
+
+        let below = Mat::from_col_major(2, 2, vec![1.0, 0.0, 0.0, 1e-17]);
+        assert_eq!(shrink_core::lapack::dtrcon_1u(&below.data, 2, 2), 1e-17);
+        assert_eq!(arma_solve_upper(&below, &[1.0, 1.0]).unwrap(), [1.0, 0.0]);
+    }
+
+    /// The non-finite refusal must not depend on dgelsd happening to fail: with an Inf above the
+    /// diagonal (or in b) dgelsd returns Some(NaN, ...), so only the explicit check refuses.
+    #[test]
+    fn arma_solve_upper_refuses_infinite_input_on_the_fallback() {
+        let b = [1.0, 2.0, 3.0];
+        let r = Mat::from_col_major(
+            3,
+            3,
+            vec![1.0, 0.0, 0.0, f64::INFINITY, 1.0, 0.0, 0.5, 0.25, 1e-30],
+        );
+        assert_eq!(
+            arma_solve_upper(&r, &b).unwrap_err(),
+            "solve(): solution not found"
+        );
+        let r = Mat::from_col_major(3, 3, vec![1.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.5, 0.25, 1e-30]);
+        assert_eq!(
+            arma_solve_upper(&r, &[1.0, f64::INFINITY, 3.0]).unwrap_err(),
+            "solve(): solution not found"
+        );
+    }
+
+    /// Above 25 coefficients the fallback is not ported: it must be the explicit error, not the
+    /// `dgelsd_square` assert (a panic, which reaches Python as RuntimeError "internal error").
+    #[test]
+    fn arma_solve_upper_refuses_the_unported_large_fallback() {
+        for n in [25usize, 26] {
+            let mut r = Mat::zeros(n, n);
+            for k in 0..n {
+                *r.at_mut(k, k) = 1.0;
+            }
+            *r.at_mut(n - 1, n - 1) = 1e-30;
+            let b = vec![1.0; n];
+            let got = arma_solve_upper(&r, &b);
+            if n <= shrink_core::lapack::DGELSD_SMLSIZ {
+                let x = got.unwrap();
+                assert_eq!(x[n - 1], 0.0);
+                assert!(x[..n - 1].iter().all(|v| *v == 1.0));
+            } else {
+                let e = got.unwrap_err();
+                assert!(
+                    e.contains("26 coefficients") && e.contains("not ported"),
+                    "{e}"
+                );
+            }
+        }
+    }
+
+    /// 1 x 1: the plain quotient for a finite non-zero entry, the dgelsd minimum-norm 0 for a zero
+    /// entry, and the refusal for a non-finite one (a NaN rcond must not be read as "fine").
+    #[test]
+    fn arma_solve_upper_one_by_one() {
+        let one = |v: f64| Mat::from_col_major(1, 1, vec![v]);
+        assert_eq!(arma_solve_upper(&one(-4.0), &[2.0]).unwrap(), [-0.5]);
+        // Armadillo's LU route (dgecon rcond 1) gives the quotient; dgelsd would give
+        // 2.5000000000000005e21 here, so this tells the two routes apart.
+        assert_eq!(
+            arma_solve_upper(&one(1e-21), &[2.5]).unwrap(),
+            [2.5 / 1e-21]
+        );
+        assert_eq!(arma_solve_upper(&one(0.0), &[2.0]).unwrap(), [0.0]);
+        for v in [f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                arma_solve_upper(&one(v), &[2.0]).unwrap_err(),
+                "solve(): solution not found"
+            );
+        }
     }
 }

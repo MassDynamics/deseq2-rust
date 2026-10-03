@@ -51,15 +51,16 @@ pub fn qr_q_r(x: &Mat) -> Option<(Mat, Mat)> {
 }
 
 /// `solve(R, ...)` on a square `R`: La_solve stops when dgecon's 1-norm rcond (after dgetrf,
-/// with dlange("1") of `R`) is below machine eps.
+/// with dlange("1") of `R`) is below machine eps. R 4.5.0 skips that check when the LU factors
+/// hold a non-finite entry (Lapack.c:1253-1257), so this does too.
 fn check_solve_rcond(r: &Mat) -> Result<(), String> {
     let p = r.ncol;
-    let rc = shrink_core::linalg::dgecon_1(&shrink_core::dense::Mat::from_col_major(
-        p,
-        p,
-        r.data.clone(),
-    ))
-    .unwrap_or(0.0);
+    let a = shrink_core::dense::Mat::from_col_major(p, p, r.data.clone());
+    let (lu, _, info) = shrink_core::dense::getrf(&a);
+    if info == 0 && lu.data.iter().any(|v| !v.is_finite()) {
+        return Ok(());
+    }
+    let rc = shrink_core::linalg::dgecon_1(&a).unwrap_or(0.0);
     if rc < f64::EPSILON {
         return Err(format!(
             "system is computationally singular: reciprocal condition number = {}",
@@ -512,4 +513,28 @@ fn optim_row(
         log_like: ext::row_sum(&ll),
         converged: o.convergence == 0,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// R 4.5.0 `La_solve` (Lapack.c:1253-1257) runs dgecon only when every LU entry is finite:
+    /// in R, `solve(matrix(c(1e308, 1e308, 1e308, -1e308), 2))` and
+    /// `solve(matrix(c(Inf, 1, 1, 1), 2))` both return without error. A finite ill-conditioned
+    /// matrix is still refused.
+    #[test]
+    fn solve_rcond_check_skips_a_non_finite_lu_as_r_does() {
+        for data in [
+            vec![1e308, 1e308, 1e308, -1e308],
+            vec![f64::INFINITY, 1.0, 1.0, 1.0],
+        ] {
+            assert_eq!(check_solve_rcond(&Mat::from_col_major(2, 2, data)), Ok(()));
+        }
+        let ill = Mat::from_col_major(2, 2, vec![1.0, 0.0, 0.0, 1e-17]);
+        assert_eq!(
+            check_solve_rcond(&ill).unwrap_err(),
+            "system is computationally singular: reciprocal condition number = 1e-17"
+        );
+    }
 }
