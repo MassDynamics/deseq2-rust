@@ -161,7 +161,9 @@ def test_near_singular_boundary_matches_production(scale, refused):
         with pytest.raises(ValueError, match=r"reciprocal condition number = (\S+)$") as e:
             deseq2_rust.run(c, si, cmp, p)
         rcond = float(re.search(r"= (\S+)$", str(e.value)).group(1))
-        assert np.finfo(float).eps / 2 < rcond < np.finfo(float).eps
+        # The message prints 6 significant digits, so a refusal just under eps can read back as
+        # 2.22045e-16, which is above eps itself (review overnight r1, SE-n2).
+        assert np.finfo(float).eps / 2 < rcond <= 2.22045e-16
     else:
         deseq2_rust.run(c, si, cmp, p)
 
