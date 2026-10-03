@@ -51,6 +51,26 @@ pub fn cmps(run: &PathBuf, kind: &str) -> Vec<String> {
     v
 }
 
+/// Comparisons of `kind` that `reference-shrink/index.json` lists for runs whose id contains
+/// `pattern`. The tests compare this with what they found on disk, so a run that loses its
+/// comparison files fails while a run added to the corpus does not (review deseq2 r3, N2).
+pub fn index_cmps(pattern: &str, kind: &str) -> usize {
+    let path = corpus_dir().join("reference-shrink/index.json");
+    let s = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let v: serde_json::Value = serde_json::from_str(&s).unwrap();
+    let suffix = format!("_{kind}_final.csv");
+    let n = v["runs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["run_id"].as_str().unwrap().contains(pattern))
+        .flat_map(|r| r["files"].as_object().unwrap().keys())
+        .filter(|f| f.ends_with(&suffix))
+        .count();
+    assert!(n > 0, "index.json lists no {kind} comparisons");
+    n
+}
+
 /// A CSV as named string columns.
 pub struct Table {
     pub header: Vec<String>,

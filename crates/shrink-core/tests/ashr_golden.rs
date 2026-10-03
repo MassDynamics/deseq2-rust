@@ -193,5 +193,9 @@ fn ashr_golden() {
     }
     println!("worst gaps over {n_cmp} comparisons: {worst:#?}");
     // A run that loses its comparison files must not pass quietly (review deseq2 r2, SE-m4).
-    assert_eq!(n_cmp, 11, "ashr comparisons in the corpus");
+    assert_eq!(
+        n_cmp,
+        index_cmps("_shrink_ashr", "ashr"),
+        "ashr comparisons on disk against index.json"
+    );
 }

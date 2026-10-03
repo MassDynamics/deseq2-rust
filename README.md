@@ -14,7 +14,9 @@ cargo test --workspace   # debug: overflow checks and debug_assert! only run her
 ```
 
 The golden tests read the count corpus at `~/wd/md-count-golden-corpus` (or
-`MD_COUNT_CORPUS_DIR`) and fail without it.
+`MD_COUNT_CORPUS_DIR`) and fail without it. The R references come from the production image
+`md-flexi-r45-local:latest` run as `linux/amd64` under emulation on an Apple silicon Mac, and are
+assumed, not checked, to match native x86-64 production.
 
 ## The edge-rust pin
 

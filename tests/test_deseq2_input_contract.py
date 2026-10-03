@@ -8,6 +8,8 @@ input. Corpus-free.
 
 from __future__ import annotations
 
+import re
+
 import deseq2_rust
 import numpy as np
 import pandas as pd
@@ -154,8 +156,12 @@ def test_near_singular_boundary_matches_production(scale, refused):
     si["dose"] = np.array([1, 2, 1.3, 1.5, 2.5, 3]) * scale
     p["control_cols"] = {"Column": "dose", "Type": "numerical"}
     if refused:
-        with pytest.raises(ValueError, match="reciprocal condition number = 2.22043e-16$"):
+        # The refusal is the behaviour under test, so the rcond digits are read back rather than
+        # hardcoded: a last-bit change in the QR must not fail this test (review deseq2 r3, N3).
+        with pytest.raises(ValueError, match=r"reciprocal condition number = (\S+)$") as e:
             deseq2_rust.run(c, si, cmp, p)
+        rcond = float(re.search(r"= (\S+)$", str(e.value)).group(1))
+        assert np.finfo(float).eps / 2 < rcond < np.finfo(float).eps
     else:
         deseq2_rust.run(c, si, cmp, p)
 

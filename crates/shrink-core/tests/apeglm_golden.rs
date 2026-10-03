@@ -370,5 +370,9 @@ fn apeglm_matches_r() {
     }
     println!("worst final gap over all runs: {worst_final:.2e}");
     // A run that loses its comparison files must not pass quietly (review deseq2 r2, SE-m4).
-    assert_eq!(n_cmp, 11, "apeglm comparisons in the corpus");
+    assert_eq!(
+        n_cmp,
+        index_cmps("_shrink_apeglm", "apeglm"),
+        "apeglm comparisons on disk against index.json"
+    );
 }
