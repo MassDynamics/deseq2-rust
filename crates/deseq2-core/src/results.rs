@@ -223,6 +223,24 @@ fn which_max(v: &[f64]) -> Option<usize> {
     best
 }
 
+/// `results()`: `stopifnot(alpha > 0 & alpha < 1)` (results.R, before the contrast checks).
+pub fn check_alpha(alpha: f64) -> Result<(), String> {
+    if alpha > 0.0 && alpha < 1.0 {
+        Ok(())
+    } else {
+        Err("alpha > 0 & alpha < 1 is not TRUE".into())
+    }
+}
+
+/// `checkContrast`: the numerator and denominator levels must differ.
+pub fn check_levels_differ(num: &str, den: &str) -> Result<(), String> {
+    if num == den {
+        Err(format!("{num} and {den} should be different level names"))
+    } else {
+        Ok(())
+    }
+}
+
 /// `results(dds, ..., independentFiltering, alpha)`.
 pub fn results(
     d: &ResultsData,
@@ -230,6 +248,7 @@ pub fn results(
     filter: bool,
     alpha: f64,
 ) -> Result<ResultsTable, String> {
+    check_alpha(alpha)?;
     let t = d.test;
     let p = t.p();
     let n = d.all_zero.len();
@@ -257,6 +276,7 @@ pub fn results(
         Which::Last => coef(&t.coef_names[p - 1].clone(), 1.0)?,
         Which::Name(nm) => coef(nm, 1.0)?,
         Which::Contrast { factor, num, den } => {
+            check_levels_differ(num, den)?;
             let f = d
                 .design
                 .vars
@@ -267,15 +287,27 @@ pub fn results(
                 })
                 .ok_or_else(|| format!("'{factor}' is not a factor of the design"))?;
             let base = &f.levels[0];
+            let has = |name: &String| t.coef_names.contains(name);
             let mut r = if den == base {
-                coef(&make_name(&format!("{factor}_{num}_vs_{den}")), 1.0)?
+                let name = make_name(&format!("{factor}_{num}_vs_{den}"));
+                if !has(&name) {
+                    return Err(format!("as {den} is the reference level, was expecting {name} to be present in 'resultsNames(object)'"));
+                }
+                coef(&name, 1.0)?
             } else if num == base {
                 path = "negated_coef";
-                coef(&make_name(&format!("{factor}_{den}_vs_{num}")), -1.0)?
+                let name = make_name(&format!("{factor}_{den}_vs_{num}"));
+                if !has(&name) {
+                    return Err(format!("as {num} is the reference level, was expecting {name} to be present in 'resultsNames(object)'"));
+                }
+                coef(&name, -1.0)?
             } else {
                 path = "contrast";
                 let cn = make_name(&format!("{factor}_{num}_vs_{base}"));
                 let cd = make_name(&format!("{factor}_{den}_vs_{base}"));
+                if !(has(&cn) && has(&cd)) {
+                    return Err(format!("{num} and {den} should be levels of {factor} such that {cn} and {cd} are contained in 'resultsNames(object)'"));
+                }
                 let cv: Vec<f64> = t
                     .coef_names
                     .iter()

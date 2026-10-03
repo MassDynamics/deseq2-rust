@@ -22,9 +22,12 @@ const TOL: f64 = 1e-8;
 #[test]
 fn ashr_golden() {
     let runs = runs("_shrink_ashr");
-    if runs.is_empty() {
-        return;
-    }
+    // No corpus fails the test rather than passing it empty (review r1, D-11).
+    assert_eq!(
+        runs.len(),
+        5,
+        "_shrink_ashr runs in the corpus (set MD_COUNT_CORPUS_DIR)"
+    );
     let mut n_cmp = 0;
     let mut worst = std::collections::BTreeMap::<&str, f64>::new();
     let bump = |k: &'static str, v: f64, w: &mut std::collections::BTreeMap<&str, f64>| {

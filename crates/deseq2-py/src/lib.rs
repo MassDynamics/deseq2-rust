@@ -4,11 +4,36 @@
 
 use numpy::ndarray::{Array1, Array2};
 use numpy::{IntoPyArray, PyReadonlyArray2};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 use deseq2_core::engine::{max_abs_log2fc, run_deseq2_diag, Comparison, Control, DeseqInput};
+
+/// Run `f` without the GIL. Engine errors become `ValueError`; a panic becomes `RuntimeError`
+/// instead of pyo3's `PanicException`, which derives from `BaseException` and so escapes
+/// `except Exception`.
+fn guarded<T: Send>(py: Python<'_>, f: impl FnOnce() -> Result<T, String> + Send) -> PyResult<T> {
+    match py.allow_threads(|| std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))) {
+        Ok(r) => r.map_err(PyValueError::new_err),
+        Err(payload) => {
+            let msg = payload
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| payload.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "unknown panic".into());
+            Err(PyRuntimeError::new_err(format!(
+                "internal error in the DESeq2 engine: {msg}"
+            )))
+        }
+    }
+}
+
+/// Test hook: a panic inside [`guarded`], to check that it reaches Python as `RuntimeError`.
+#[pyfunction]
+fn _selftest_panic(py: Python<'_>) -> PyResult<()> {
+    guarded(py, || -> Result<(), String> { panic!("selftest panic") })
+}
 
 fn vector<'py>(py: Python<'py>, data: Vec<f64>) -> Bound<'py, PyAny> {
     Array1::from_vec(data).into_pyarray(py).into_any()
@@ -33,7 +58,8 @@ fn matrix<'py>(
 /// `CILeft`, `CIRight`, `CrILeft`, `CrIRight`, `PValue`, `AdjPValue`) or, for `anova`,
 /// `anova_labels`, `anova_log2fc` (one array per comparison), `LRT`, `PValue`, `AdjPValue`,
 /// `max_pair` and `max_log2fc`. Every vector covers all input genes in input order. Engine
-/// errors raise `ValueError` with the production message.
+/// errors raise `ValueError` with the production message; an internal panic raises
+/// `RuntimeError`.
 ///
 /// With `diagnostics`, the dict also has `diag`: `kept_idx`, `size_factors`, `coef_names`, and
 /// over the kept genes `base_mean`, `base_var`, `disp_gene_est`, `disp_fit`, `dispersion`,
@@ -105,9 +131,7 @@ fn deseq2_pipeline<'py>(
         shrink: shrink.to_string(),
         entity_type: entity_type.to_string(),
     };
-    let (out, diag) = py
-        .allow_threads(|| run_deseq2_diag(&input))
-        .map_err(PyValueError::new_err)?;
+    let (out, diag) = guarded(py, || run_deseq2_diag(&input))?;
 
     let d = PyDict::new(py);
     d.set_item("gene_ids", out.gene_ids)?;
@@ -169,5 +193,6 @@ fn deseq2_pipeline<'py>(
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(deseq2_pipeline, m)?)?;
+    m.add_function(wrap_pyfunction!(_selftest_panic, m)?)?;
     Ok(())
 }

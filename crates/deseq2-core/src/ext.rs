@@ -450,12 +450,12 @@ mod tests {
 
 #[cfg(test)]
 mod r_cases {
-    /// Cases dumped from R 4.5 in the production image (`/tmp/d2/ext_cases.txt`), when present.
+    /// 3000 cases dumped from R 4.5 in the production image by `tests/data/ext_cases.R`.
     #[test]
     fn matches_r_dump() {
-        let Ok(txt) = std::fs::read_to_string("/tmp/d2/ext_cases.txt") else {
-            return;
-        };
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/ext_cases.txt");
+        let txt = std::fs::read_to_string(path).expect("tests/data/ext_cases.txt");
+        assert_eq!(txt.lines().count(), 3000);
         let mut bad = 0;
         for line in txt.lines() {
             let (a, b) = line.split_once(" | ").unwrap();

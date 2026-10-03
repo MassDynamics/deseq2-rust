@@ -10,8 +10,10 @@ license = "GPL-3.0-or-later"
 
 [workspace.dependencies]
 thiserror = "2"
-rnum = { path = "../edge-rust/crates/rnum" }
-edger-core = { path = "../edge-rust/crates/edger-core" }
+# edge-rust pinned to a recorded commit (review r1, D-1): an edge-rust change can no longer
+# break this build silently. Bump the rev deliberately and re-run the gate.
+rnum = { git = "file:///Users/giuseppeinfusini/wd/md-repos/edge-rust", rev = "8dd28a05d13a5f0b2209dcc3a1c44478b1f4c54d" }
+edger-core = { git = "file:///Users/giuseppeinfusini/wd/md-repos/edge-rust", rev = "8dd28a05d13a5f0b2209dcc3a1c44478b1f4c54d" }
 
 [profile.release]
 opt-level = 3

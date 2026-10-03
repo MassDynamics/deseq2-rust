@@ -1,12 +1,15 @@
 """The production DESeq2 table around the Rust engine.
 
 Mirrors what MDFlexiComparisons does after the engine call: the left join of the engine table to
-every gene id (``merge(..., all.x = TRUE)``, which orders rows by GroupId as a string), the
-integer GroupId, and for ANOVA runs ``.packageANOVAOutput`` (``R/runANOVA.R``): the omnibus
-columns plus ``MaxLog2FCPair`` / ``MaxLog2FC``, every column as a string with NA written as "".
+every gene id, the integer GroupId (rows in numeric GroupId order when every id is an integer,
+as production's final table is, otherwise by GroupId as a string), and for ANOVA runs
+``.packageANOVAOutput`` (``R/runANOVA.R``): the omnibus columns plus ``MaxLog2FCPair`` /
+``MaxLog2FC``, every column as a string with NA written as "".
 """
 
 from __future__ import annotations
+
+import logging
 
 import numpy as np
 import pandas as pd
@@ -26,6 +29,8 @@ PAIR_STATS = [
 ]
 ANOVA_COLUMNS = ["GroupId", "AveExpr", "PValue", "AdjPValue", "LRT", "MaxLog2FCPair", "MaxLog2FC"]
 
+log = logging.getLogger(__name__)
+
 
 def _control_specs(control_cols) -> list[tuple[str, str]]:
     """``control_cols`` as ``{Column, Type}`` (scalars or lists, as the job params carry it),
@@ -38,6 +43,11 @@ def _control_specs(control_cols) -> list[tuple[str, str]]:
             cols, types = [cols], [types]
         return list(zip(cols, types))
     return [(c["Column"], c["Type"]) for c in control_cols]
+
+
+def _is_int_id(g: str) -> bool:
+    """Whether ``type_convert`` would read the GroupId as an integer."""
+    return g.isascii() and g.lstrip("-").isdigit()
 
 
 def _r_character(x: float) -> str:
@@ -71,16 +81,42 @@ def run(
     """
     cc = params.get("condition_col", "condition")
     si = sample_info.set_index("replicate") if "replicate" in sample_info.columns else sample_info
-    si.index = si.index.astype(str)
+    si = si.set_axis(si.index.astype(str))  # a copy: the caller's frame is left alone
+    if counts.index.duplicated().any():
+        raise ValueError("counts has duplicate gene ids")
+    if counts.columns.duplicated().any():
+        raise ValueError("counts has duplicate sample ids")
+    # dcast orders the sample columns by id (C collation); the fit depends on that order.
+    counts = counts[sorted(counts.columns, key=lambda s: str(s).encode())]
     sample_ids = [str(s) for s in counts.columns]
     missing = set(sample_ids) - set(si.index)
     if missing:
         raise ValueError(f"samples missing from sample_info: {sorted(missing)}")
     # sampleInfo[colnames(countMatrix), ]: the count matrix fixes the sample order.
     si = si.loc[sample_ids]
-    controls = [
-        (c, t, [str(v) for v in si[c]]) for c, t in _control_specs(params.get("control_cols"))
-    ]
+    if si[cc].isna().any():
+        raise ValueError(
+            f"Condition column '{cc}' contains missing values. "
+            "Fix the sample metadata before running DE."
+        )
+    specs = _control_specs(params.get("control_cols"))
+    # model.matrix refuses a single-level factor before DESeqDataSetFromMatrix sees the NA.
+    for c, t in specs:
+        if t == "categorical" and si[c].dropna().astype(str).nunique() < 2:
+            raise ValueError("contrasts can be applied only to factors with 2 or more levels")
+    na_cols = [c for c, _ in specs if si[c].isna().any()]
+    if na_cols:
+        raise ValueError("variables in design formula cannot contain NA: " + ", ".join(na_cols))
+    controls = [(c, t, [str(v) for v in si[c]]) for c, t in specs]
+    mat = counts.to_numpy(dtype=np.float64, na_value=np.nan, copy=True)
+    na = np.isnan(mat)
+    if na.any():
+        # Production fills plain NA with 0 and stops on NaN and Inf (edgeRStatsFun.R:56-72).
+        # pandas cannot tell NaN from NA, and a cell missing after a pivot arrives as NaN, so
+        # every NaN is filled with 0 here: parity holds for NA only, and a literal NaN count
+        # runs where production stops. Inf still stops in the engine.
+        log.info("DESeq2: coercing %d NA cell(s) in the count matrix to 0", int(na.sum()))
+        mat[na] = 0.0
     enc_l = comparisons["encoded_left"] if "encoded_left" in comparisons else comparisons["left"]
     enc_r = comparisons["encoded_right"] if "encoded_right" in comparisons else comparisons["right"]
     cmps = [
@@ -92,7 +128,7 @@ def run(
     shrink = params.get("deseq2_lfc_shrinkage")
     gene_ids = [str(g) for g in counts.index]
     res = _core.deseq2_pipeline(
-        np.ascontiguousarray(counts.to_numpy(dtype=np.float64)),
+        np.ascontiguousarray(mat),
         gene_ids,
         sample_ids,
         cc,
@@ -106,8 +142,12 @@ def run(
         diagnostics=diagnostics,
     )
 
-    # merge(allDT, stats, by = "GroupId"): rows ordered by the character key (C collation).
-    order = sorted(range(len(gene_ids)), key=lambda i: gene_ids[i].encode())
+    # Production's final table is in numeric GroupId order when every id is an integer;
+    # otherwise rows follow the merge's character key (C collation).
+    if all(_is_int_id(g) for g in gene_ids):
+        order = sorted(range(len(gene_ids)), key=lambda i: int(gene_ids[i]))
+    else:
+        order = sorted(range(len(gene_ids)), key=lambda i: gene_ids[i].encode())
     if anova:
         labels = res["anova_labels"]
         table = pd.DataFrame(
@@ -133,7 +173,7 @@ def run(
         out["AveExpr"] = res["ave_expr"]
         table = pd.DataFrame(out).iloc[order].reset_index(drop=True)
         # type_convert(out, "integer", "GroupId"), when every id is an integer.
-        if all(g.lstrip("-").isdigit() for g in table["GroupId"]):
+        if all(_is_int_id(g) for g in table["GroupId"]):
             table["GroupId"] = table["GroupId"].astype(np.int64)
     if diagnostics:
         return table, _diag(res, gene_ids, sample_ids)
@@ -149,7 +189,7 @@ def _diag(res: dict, gene_ids: list[str], sample_ids: list[str]) -> dict:
     """
     d = res["diag"]
     ids = [gene_ids[i] for i in d["kept_idx"]]
-    if all(g.lstrip("-").isdigit() for g in ids):
+    if all(_is_int_id(g) for g in ids):
         ids = [int(g) for g in ids]
     samples = pd.DataFrame({"replicate": sample_ids, "size_factor": d["size_factors"]})
     genes = pd.DataFrame(

@@ -156,6 +156,14 @@ pub fn deseq2_runs(file: Option<&str>) -> Vec<String> {
         .filter(|n| file.is_none_or(|f| reference_dir(n).join(f).exists()))
         .collect();
     v.sort();
+    // A shrunken corpus must not pass quietly (review r1, D-11): 39 DESeq2 runs, 35 with tables.
+    let want = if file.is_none() { 39 } else { 35 };
+    assert_eq!(
+        v.len(),
+        want,
+        "DESeq2 runs with {file:?} in {} (set MD_COUNT_CORPUS_DIR)",
+        corpus_dir().display()
+    );
     v
 }
 

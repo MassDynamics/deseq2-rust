@@ -222,10 +222,16 @@ pub fn make_name(s: &str) -> String {
     out
 }
 
-/// Row keys of a model matrix: equal rows share a key (`paste0(row, collapse = "_")`).
-fn row_keys(x: &Mat) -> Vec<Vec<u64>> {
+/// Row keys of a model matrix: equal rows share a key (`paste0(row, collapse = "_")`, so
+/// values are compared at 15 significant digits and -0 equals 0, as R does).
+fn row_keys(x: &Mat) -> Vec<String> {
     (0..x.nrow)
-        .map(|i| (0..x.ncol).map(|j| x.at(i, j).to_bits()).collect())
+        .map(|i| {
+            (0..x.ncol)
+                .map(|j| r_num_string(x.at(i, j)))
+                .collect::<Vec<_>>()
+                .join("_")
+        })
         .collect()
 }
 
@@ -233,7 +239,7 @@ fn row_keys(x: &Mat) -> Vec<Vec<u64>> {
 /// model matrix row.
 pub fn n_or_more_in_cell(x: &Mat, n: usize) -> Vec<bool> {
     let keys = row_keys(x);
-    let mut count: HashMap<&Vec<u64>, usize> = HashMap::new();
+    let mut count: HashMap<&String, usize> = HashMap::new();
     for k in &keys {
         *count.entry(k).or_insert(0) += 1;
     }
@@ -259,16 +265,20 @@ pub fn r_num_string(x: f64) -> String {
     if x == 0.0 {
         return "0".into();
     }
-    // %.15g
-    let e = format!("{:.14e}", x);
+    c_fmt_g(x, 15)
+}
+
+/// C's `%.<sig>g` for a finite non-zero double.
+pub fn c_fmt_g(x: f64, sig: usize) -> String {
+    let e = format!("{:.*e}", sig - 1, x);
     let (mant, exp) = e.split_once('e').unwrap();
     let exp: i32 = exp.parse().unwrap();
-    if !(-5..15).contains(&exp) {
+    if exp < -4 || exp >= sig as i32 {
         let mant = trim_zeros(mant);
         let sign = if exp < 0 { '-' } else { '+' };
         format!("{mant}e{sign}{:02}", exp.abs())
     } else {
-        let decimals = (14 - exp).max(0) as usize;
+        let decimals = (sig as i32 - 1 - exp).max(0) as usize;
         trim_zeros(&format!("{:.*}", decimals, x))
     }
 }
@@ -302,6 +312,33 @@ pub fn moment_cells(x: &Mat) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Review r1, D-9: R keys model matrix rows by `as.character` at 15 digits, so -0 and
+    /// 0.1 + 0.2 share cells with 0 and 0.3; exact float bits split them.
+    #[test]
+    fn cells_use_the_fifteen_digit_key() {
+        let col = |v: &[f64]| {
+            let mut d = vec![1.0; v.len()];
+            d.extend_from_slice(v);
+            Mat::from_col_major(v.len(), 2, d)
+        };
+        let x = col(&[0.0, -0.0, 0.0, 0.3, 0.1 + 0.2, 0.3]);
+        assert_eq!(n_or_more_in_cell(&x, 3), vec![true; 6]);
+        assert_eq!(n_groups(&x), 2);
+        // A real difference at the 15th digit still splits.
+        let y = col(&[0.0, 0.0, 1e-15, 0.3, 0.3, 0.3]);
+        assert_eq!(n_groups(&y), 3);
+    }
+
+    #[test]
+    fn c_fmt_g_matches_printf() {
+        assert_eq!(c_fmt_g(1.163_640_000_1e-16, 6), "1.16364e-16");
+        assert_eq!(c_fmt_g(0.000_123_4, 6), "0.0001234");
+        assert_eq!(c_fmt_g(1e-5, 6), "1e-05");
+        assert_eq!(c_fmt_g(123_456_789.0, 6), "1.23457e+08");
+        assert_eq!(r_num_string(1e15), "1e+15");
+        assert_eq!(r_num_string(-0.0), "0");
+    }
 
     #[test]
     fn make_names_matches_r() {

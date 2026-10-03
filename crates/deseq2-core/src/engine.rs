@@ -246,7 +246,12 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         Var::Factor(f) => f.clone(),
         _ => unreachable!(),
     };
-    if cond.levels.len() < 2 {
+    // model.matrix refuses any single-level factor, the condition or a categorical control.
+    if design
+        .vars
+        .iter()
+        .any(|v| matches!(v, Var::Factor(f) if f.levels.len() < 2))
+    {
         return Err("contrasts can be applied only to factors with 2 or more levels".into());
     }
     let (x, _) = design.model_matrix();
@@ -269,6 +274,10 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     let mut y = Vec::with_capacity(kept_idx.len() * m);
     for &g in &kept_idx {
         y.extend_from_slice(&counts[g * m..(g + 1) * m]);
+    }
+    // DESeqDataSetFromMatrix stores integer counts: above .Machine$integer.max they turn NA.
+    if y.iter().any(|v| *v > 2147483647.0) {
+        return Err("NA counts not allowed".into());
     }
     let fit = deseq(&y, &design, input.anova)?;
     let ave_expr = spread(&fit.base.base_mean, &kept_idx, ng);
@@ -337,6 +346,9 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     for c in &input.comparisons {
         let left = &c.encoded_left;
         let right = &c.encoded_right;
+        // The dispatch-contrast results() call production makes first fails on these.
+        crate::results::check_alpha(input.alpha)?;
+        crate::results::check_levels_differ(left, right)?;
         let (test, des, relevel_fit) = if cond.levels[0] != *right {
             let f2 = cond
                 .relevel(right)

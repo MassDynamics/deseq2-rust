@@ -50,10 +50,30 @@ pub fn qr_q_r(x: &Mat) -> Option<(Mat, Mat)> {
     Some((qm, r))
 }
 
+/// `solve(R, ...)` on a square `R`: La_solve stops when dgecon's 1-norm rcond (after dgetrf,
+/// with dlange("1") of `R`) is below machine eps.
+fn check_solve_rcond(r: &Mat) -> Result<(), String> {
+    let p = r.ncol;
+    let rc = shrink_core::linalg::dgecon_1(&shrink_core::dense::Mat::from_col_major(
+        p,
+        p,
+        r.data.clone(),
+    ))
+    .unwrap_or(0.0);
+    if rc < f64::EPSILON {
+        return Err(format!(
+            "system is computationally singular: reciprocal condition number = {}",
+            crate::design::c_fmt_g(rc, 6)
+        ));
+    }
+    Ok(())
+}
+
 /// `linearModelMu(y, x) = (y %*% Q) %*% t(x %*% solve(R))` for row-major `y` (`n x m`).
 pub fn linear_model_mu(y: &[f64], m: usize, x: &Mat) -> Result<Vec<f64>, String> {
     let p = x.ncol;
     let (q, r) = qr_q_r(x).ok_or("linearModelMu: model matrix is not full rank")?;
+    check_solve_rcond(&r)?;
     // Rinv = solve(R): back-substitution on each identity column.
     let mut rinv = Mat::zeros(p, p);
     for k in 0..p {
@@ -199,6 +219,9 @@ pub fn fit_nbinom_glms(
 
     // Initial betas (natural log): QR least squares on log(norm + 0.1) when full rank.
     let qr = qr_q_r(x);
+    if let Some((_, r)) = &qr {
+        check_solve_rcond(r)?;
+    }
     let mut beta_init = vec![0.0; n * p];
     for g in 0..n {
         let row = &norm[g * m..(g + 1) * m];

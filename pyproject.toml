@@ -14,7 +14,9 @@ dependencies = [
   "pandas>=2.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
+# A group, not an extra: a bare `uv sync` installs it, so `uv run pytest` works on a fresh
+# checkout (review r1, D-10).
 dev = [
   "pytest>=8",
   "ruff>=0.9",
@@ -32,3 +34,13 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.uv]
+# Rebuild the extension on `uv run` when the Rust sources change (review r1, D-10).
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "Cargo.toml" },
+  { file = "Cargo.lock" },
+  { file = "crates/**/Cargo.toml" },
+  { file = "crates/**/*.rs" },
+]

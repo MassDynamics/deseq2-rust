@@ -9,7 +9,14 @@ use shrink_core::ashr::ash_shrink;
 
 #[test]
 fn mixsqp_trace() {
-    for run in runs("_shrink_ashr") {
+    let runs = runs("_shrink_ashr");
+    // No corpus fails the test rather than passing it empty (review r1, D-11).
+    assert_eq!(
+        runs.len(),
+        5,
+        "_shrink_ashr runs in the corpus (set MD_COUNT_CORPUS_DIR)"
+    );
+    for run in runs {
         for cmp in cmps(&run, "ashr") {
             let p = |s: &str| run.join(format!("{cmp}_ashr_{s}.csv"));
             let data = Table::read(&p("data"));

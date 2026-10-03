@@ -70,9 +70,12 @@ fn rel1(a: f64, b: f64) -> f64 {
 #[test]
 fn apeglm_matches_r() {
     let runs = runs("_shrink_apeglm");
-    if runs.is_empty() {
-        return;
-    }
+    // No corpus fails the test rather than passing it empty (review r1, D-11).
+    assert_eq!(
+        runs.len(),
+        5,
+        "_shrink_apeglm runs in the corpus (set MD_COUNT_CORPUS_DIR)"
+    );
     let mut worst_final: f64 = 0.0;
     for run in &runs {
         let name = run.file_name().unwrap().to_string_lossy().into_owned();

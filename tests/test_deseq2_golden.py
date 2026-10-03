@@ -24,7 +24,11 @@ RUNS = sorted(
     if p.name.startswith(("count_", "edge_"))
 )
 if not RUNS:
-    pytest.skip(f"no DESeq2 runs under {CORPUS}", allow_module_level=True)
+    # A missing corpus fails the suite; skipping it silently turned the gate green with no parity
+    # check (review r1, D-11). Set DESEQ2_RUST_ALLOW_NO_CORPUS=1 to run the rest without it.
+    if os.environ.get("DESEQ2_RUST_ALLOW_NO_CORPUS") == "1":
+        pytest.skip(f"no DESeq2 runs under {CORPUS}", allow_module_level=True)
+    pytest.fail(f"no DESeq2 runs under {CORPUS} (set MD_COUNT_CORPUS_DIR)", pytrace=False)
 
 TOL = 1e-8
 
@@ -78,6 +82,12 @@ def test_table_matches_reference_output(run):
     )
     assert list(got.columns) == list(want.columns)
     assert len(got) == len(want)
+    # The reference CSVs are in C-collation order; production's final table (results.rds) and
+    # the port are in numeric GroupId order.
+    gid = got["GroupId"].astype(int).to_numpy()
+    assert (np.diff(gid) > 0).all(), "rows not in numeric GroupId order"
+    want = want.iloc[np.argsort(want["GroupId"].astype(int).to_numpy(), kind="stable")]
+    want = want.reset_index(drop=True)
     if anova:
         want = want.fillna("")
         assert list(got["GroupId"]) == list(want["GroupId"])
@@ -94,6 +104,12 @@ def test_table_matches_reference_output(run):
 
 
 ERROR_RUNS = [r for r in RUNS if manifest(r)["status"] == "error"]
+
+
+def test_corpus_is_complete():
+    """A shrunken corpus must not pass quietly (review r1, D-11)."""
+    assert len(TABLE_RUNS) == 35, f"{len(TABLE_RUNS)} table runs, expected 35"
+    assert len(ERROR_RUNS) == 4, f"{len(ERROR_RUNS)} error runs, expected 4"
 
 
 @pytest.mark.parametrize("run", ERROR_RUNS)
