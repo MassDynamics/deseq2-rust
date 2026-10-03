@@ -10,6 +10,7 @@ its own interpreter.
 Inputs follow the engine contract run(counts, sample_info, comparisons, params) -> DataFrame.
 `to_inputs` is the only place that knows the shapes, so adapt it there if the contract moves.
 """
+
 import argparse
 import json
 import sys
@@ -29,8 +30,10 @@ def to_inputs(d: Path, de_method: str, shrink: str = "none"):
     p = json.loads((d / "params.json").read_text())
     params = {
         "condition_col": p["condition_col"],
-        "control_cols": [{"Column": c, "Type": "numerical" if c == "covariate" else "categorical"}
-                         for c in p.get("control_cols", [])],
+        "control_cols": [
+            {"Column": c, "Type": "numerical" if c == "covariate" else "categorical"}
+            for c in p.get("control_cols", [])
+        ],
         "mode": p["mode"],
         "comparison_type": "custom",
         "custom_comparisons": comps[["left", "right"]].to_dict("records"),

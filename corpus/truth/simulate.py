@@ -18,6 +18,7 @@ generating parameters). The generating model is
 mu_g is drawn from the quantile function of airway's base means (the 8000-gene airway subset in
 the count golden corpus, normalised by median-of-ratios), so the count range matches real data.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,10 +31,51 @@ import pandas as pd
 # 41 quantiles (0, 2.5%, ..., 100%) of log(baseMean) over the airway subset's genes with
 # baseMean > 0 (7390 genes), computed once from md-count-golden-corpus/shared/airway. The top
 # quantile is capped at 11.5 (a mean of ~1e5) so a single draw cannot dominate a library.
-AIRWAY_LOG_BASEMEAN_Q = np.array([
-    -2.423, -1.63, -0.89, -0.139, 0.584, 1.251, 1.841, 2.415, 2.955, 3.548, 3.967, 4.308, 4.624,
-    4.864, 5.1, 5.277, 5.455, 5.604, 5.732, 5.855, 5.961, 6.081, 6.193, 6.295, 6.384, 6.492, 6.583,
-    6.686, 6.792, 6.926, 7.032, 7.126, 7.245, 7.364, 7.495, 7.665, 7.866, 8.083, 8.424, 8.985, 11.5])
+AIRWAY_LOG_BASEMEAN_Q = np.array(
+    [
+        -2.423,
+        -1.63,
+        -0.89,
+        -0.139,
+        0.584,
+        1.251,
+        1.841,
+        2.415,
+        2.955,
+        3.548,
+        3.967,
+        4.308,
+        4.624,
+        4.864,
+        5.1,
+        5.277,
+        5.455,
+        5.604,
+        5.732,
+        5.855,
+        5.961,
+        6.081,
+        6.193,
+        6.295,
+        6.384,
+        6.492,
+        6.583,
+        6.686,
+        6.792,
+        6.926,
+        7.032,
+        7.126,
+        7.245,
+        7.364,
+        7.495,
+        7.665,
+        7.866,
+        8.083,
+        8.424,
+        8.985,
+        11.5,
+    ]
+)
 
 # Dispersion trend and scatter. a0/a1 sit between airway's fit (0.009, 3.7) and noisier tissue
 # data; sigma_d^2 = 0.49 is kept above DESeq2's 0.25 floor on the prior variance so the
@@ -70,8 +112,9 @@ def size_factors(rng, m):
     return s / np.exp(np.mean(np.log(s)))
 
 
-def simulate(seed, n_genes, groups, n_rep, pi0=0.8, batch=False, covariate=False,
-             outliers=0.0, anova=False):
+def simulate(
+    seed, n_genes, groups, n_rep, pi0=0.8, batch=False, covariate=False, outliers=0.0, anova=False
+):
     """Inputs and truth for one scenario. `groups` are condition labels, the first is the
     reference. Comparisons are every later level against the first, and with three levels
     also C - B, which exercises production's relevel refit."""
@@ -95,8 +138,15 @@ def simulate(seed, n_genes, groups, n_rep, pi0=0.8, batch=False, covariate=False
     log2q = np.log2(mu)[:, None] + beta[:, [groups.index(c) for c in cond]]
 
     si = pd.DataFrame({"replicate": samples, "condition": cond})
-    truth = pd.DataFrame({"id": np.arange(1, n_genes + 1), "mu": mu, "disp": alpha,
-                          "disp_trend": A0 + A1 / mu, "de": de_any})
+    truth = pd.DataFrame(
+        {
+            "id": np.arange(1, n_genes + 1),
+            "mu": mu,
+            "disp": alpha,
+            "disp_trend": A0 + A1 / mu,
+            "de": de_any,
+        }
+    )
     for g in range(1, k):
         truth[f"beta_{groups[g]}"] = beta[:, g]
 
@@ -164,9 +214,21 @@ def simulate(seed, n_genes, groups, n_rep, pi0=0.8, batch=False, covariate=False
         "apeglm_seed": 1,
         "condition_separator": " - ",
     }
-    meta = {"seed": seed, "n_genes": n_genes, "groups": groups, "n_rep": n_rep, "pi0": pi0,
-            "a0": A0, "a1": A1, "sigma_d": SIGMA_D, "sf_sd": SF_SD, "batch": batch,
-            "covariate": covariate, "outlier_fraction": outliers, "mode": params["mode"]}
+    meta = {
+        "seed": seed,
+        "n_genes": n_genes,
+        "groups": groups,
+        "n_rep": n_rep,
+        "pi0": pi0,
+        "a0": A0,
+        "a1": A1,
+        "sigma_d": SIGMA_D,
+        "sf_sd": SF_SD,
+        "batch": batch,
+        "covariate": covariate,
+        "outlier_fraction": outliers,
+        "mode": params["mode"],
+    }
     ts = pd.DataFrame({"replicate": samples, "size_factor": s})
     return counts, si, comparisons, params, truth, ts, meta
 
@@ -217,8 +279,16 @@ def main():
     names = a.only or list(specs)
     for name in names:
         write(root, name, specs[name])
-    index = {n: {"seed": specs[n][0], "n_genes": specs[n][1], "groups": specs[n][2],
-                 "n_rep": specs[n][3], **specs[n][4]} for n in specs}
+    index = {
+        n: {
+            "seed": specs[n][0],
+            "n_genes": specs[n][1],
+            "groups": specs[n][2],
+            "n_rep": specs[n][3],
+            **specs[n][4],
+        }
+        for n in specs
+    }
     (root / "index.json").write_text(json.dumps(index, indent=1) + "\n")
     print(f"wrote {len(names)} scenarios to {root}")
 

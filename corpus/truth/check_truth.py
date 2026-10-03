@@ -36,8 +36,10 @@ import pandas as pd
 from scipy import optimize, stats
 
 HERE = Path(__file__).resolve().parent
-OUT_NOTE = ("documented: both trends are fitted before outlier handling (DESeq2 replaces after the "
-            "trend; edgeR has none), so 5% outlier genes inflate the trend")
+OUT_NOTE = (
+    "documented: both trends are fitted before outlier handling (DESeq2 replaces after the "
+    "trend; edgeR has none), so 5% outlier genes inflate the trend"
+)
 DEFAULT_CORPUS = Path.home() / "wd" / "md-count-truth-corpus"
 PREFIX = {"r": "r", "rust": "rust", "pydeseq2": "py"}
 LN2 = math.log(2.0)
@@ -188,7 +190,7 @@ def r_trim_mean(x, trim):
     lo = math.floor(n * trim) + 1
     hi = n + 1 - lo
     s = np.sort(x, axis=1)
-    return s[:, lo - 1:hi].mean(axis=1)
+    return s[:, lo - 1 : hi].mean(axis=1)
 
 
 def design_from(path: Path):
@@ -252,24 +254,52 @@ def check_calibration(rep, root, prefix, engines):
         ds = eng == "deseq2"
         DNOTE = "documented: DESeq2 Wald plugs in the MAP dispersion and a normal reference"
         ks = stats.kstest(thinned, "uniform")
-        rep.add("calibration", "KS uniform (thinned)", "null x200", eng,
-                "INFO" if ds else verdict(ks.pvalue > T["ks_p_min"]), f"p={fmt(ks.pvalue)} n={len(thinned)}",
-                f"> {T['ks_p_min']}", DNOTE if ds else "10 genes/rep with true mean >= 10")
+        rep.add(
+            "calibration",
+            "KS uniform (thinned)",
+            "null x200",
+            eng,
+            "INFO" if ds else verdict(ks.pvalue > T["ks_p_min"]),
+            f"p={fmt(ks.pvalue)} n={len(thinned)}",
+            f"> {T['ks_p_min']}",
+            DNOTE if ds else "10 genes/rep with true mean >= 10",
+        )
         ksall = stats.kstest(pooled, "uniform")
-        rep.add("calibration", "KS uniform (all genes, info)", "null x200", eng, "INFO",
-                f"D={fmt(ksall.statistic)} p={fmt(ksall.pvalue)} n={len(pooled)}")
+        rep.add(
+            "calibration",
+            "KS uniform (all genes, info)",
+            "null x200",
+            eng,
+            "INFO",
+            f"D={fmt(ksall.statistic)} p={fmt(ksall.pvalue)} n={len(pooled)}",
+        )
         for lev in (0.05, 0.01):
             rate = float(np.mean(pooled <= lev))
             ub = lev + T["type1_z"] * math.sqrt(lev * (1 - lev) / len(pooled))
             if ds:
                 ub = T["deseq2_type1"][lev]
-            rep.add("calibration", f"type I error at {lev}", "null x200", eng,
-                    verdict(rate <= ub), fmt(rate), f"<= {fmt(ub)}", DNOTE if ds else "nominal + 3 binomial sd")
+            rep.add(
+                "calibration",
+                f"type I error at {lev}",
+                "null x200",
+                eng,
+                verdict(rate <= ub),
+                fmt(rate),
+                f"<= {fmt(ub)}",
+                DNOTE if ds else "nominal + 3 binomial sd",
+            )
         fwer = float(np.mean(nrej > 0))
         ub = a + T["fdr_z"] * math.sqrt(a * (1 - a) / len(nrej))
-        rep.add("calibration", "BH FDR (= FWER under global null)", "null x200", eng,
-                "INFO" if ds else verdict(fwer <= ub), fmt(fwer), f"<= {fmt(ub)}",
-                DNOTE + "; one extreme gene per rep is enough to reject" if ds else "")
+        rep.add(
+            "calibration",
+            "BH FDR (= FWER under global null)",
+            "null x200",
+            eng,
+            "INFO" if ds else verdict(fwer <= ub),
+            fmt(fwer),
+            f"<= {fmt(ub)}",
+            DNOTE + "; one extreme gene per rep is enough to reject" if ds else "",
+        )
         fdp = []
         for s in mixes:
             o = s.out(eng)
@@ -283,9 +313,16 @@ def check_calibration(rep, root, prefix, engines):
             ub = a + T["fdr_z"] * fdp.std(ddof=1) / math.sqrt(len(fdp))
             if ds:
                 ub = T["deseq2_fdp_max"]
-            rep.add("calibration", "mean BH FDP (pi0=0.8)", "mix x50", eng,
-                    verdict(fdp.mean() <= ub), fmt(fdp.mean()), f"<= {fmt(ub)}",
-                    DNOTE if ds else "BH controls at pi0*alpha = 0.04; bound alpha + 2.326 MC sd")
+            rep.add(
+                "calibration",
+                "mean BH FDP (pi0=0.8)",
+                "mix x50",
+                eng,
+                verdict(fdp.mean() <= ub),
+                fmt(fdp.mean()),
+                f"<= {fmt(ub)}",
+                DNOTE if ds else "BH controls at pi0*alpha = 0.04; bound alpha + 2.326 MC sd",
+            )
 
 
 # --------------------------------------------------------------------------------------
@@ -312,13 +349,23 @@ def check_recovery(rep, root, prefix, engines):
                 rep.add("recovery", "size factors", name, eng, "SKIP", "not exposed")
                 continue
             sm = pd.read_csv(d / "samples.csv").set_index("replicate")
-            est = sm["size_factor"] if eng.startswith("deseq2") else sm["lib_size"] * sm["norm_factor"]
+            est = (
+                sm["size_factor"]
+                if eng.startswith("deseq2")
+                else sm["lib_size"] * sm["norm_factor"]
+            )
             dev = np.log(est.to_numpy()) - np.log(tsf.loc[sm.index].to_numpy())
             dev -= dev.mean()
             what = "size factors" if eng.startswith("deseq2") else "effective library (lib x TMM)"
-            rep.add("recovery", f"{what} vs truth (up to scale)", name, eng,
-                    verdict(np.max(np.abs(dev)) <= T["sf_max_logdev"]),
-                    f"max|dlog|={fmt(np.max(np.abs(dev)))}", f"<= {T['sf_max_logdev']}")
+            rep.add(
+                "recovery",
+                f"{what} vs truth (up to scale)",
+                name,
+                eng,
+                verdict(np.max(np.abs(dev)) <= T["sf_max_logdev"]),
+                f"max|dlog|={fmt(np.max(np.abs(dev)))}",
+                f"<= {T['sf_max_logdev']}",
+            )
         d = s.diag(deng)
         if d is not None:
             g = pd.read_csv(d / "genes.csv").set_index("id")
@@ -328,18 +375,44 @@ def check_recovery(rep, root, prefix, engines):
             ref = tr["disp_trend"].to_numpy()[m] * math.exp(sig2 / 2)
             med = float(np.median(np.log(g["dispFit"].to_numpy()[m] / ref)))
             st_ = "INFO" if has_out else verdict(abs(med) <= T["disp_trend_logratio_max"])
-            rep.add("recovery", "DESeq2 dispersion trend vs E[true disp | mean]", name, deng, st_,
-                    f"median log ratio={fmt(med)}", f"|.| <= {T['disp_trend_logratio_max']}",
-                    OUT_NOTE if has_out else "genes with true mean >= 50")
-            gw = np.median(g["dispGeneEst"].to_numpy()[m & ~out_g] / tr["disp"].to_numpy()[m & ~out_g])
-            rep.add("recovery", "DESeq2 gene-wise dispersion / true, median (info)", name, deng, "INFO", fmt(gw),
-                    note="below 1 at small n: the MLE of a variance is biased down")
+            rep.add(
+                "recovery",
+                "DESeq2 dispersion trend vs E[true disp | mean]",
+                name,
+                deng,
+                st_,
+                f"median log ratio={fmt(med)}",
+                f"|.| <= {T['disp_trend_logratio_max']}",
+                OUT_NOTE if has_out else "genes with true mean >= 50",
+            )
+            gw = np.median(
+                g["dispGeneEst"].to_numpy()[m & ~out_g] / tr["disp"].to_numpy()[m & ~out_g]
+            )
+            rep.add(
+                "recovery",
+                "DESeq2 gene-wise dispersion / true, median (info)",
+                name,
+                deng,
+                "INFO",
+                fmt(gw),
+                note="below 1 at small n: the MLE of a variance is biased down",
+            )
             lr2 = np.log(g["dispersion"].to_numpy()[m] / tr["disp"].to_numpy()[m])
             rho = stats.spearmanr(g["dispersion"].to_numpy()[m], tr["disp"].to_numpy()[m]).statistic
-            sj = json.loads((d / "scalars.json").read_text()) if (d / "scalars.json").exists() else {}
-            rep.add("recovery", "DESeq2 MAP dispersion vs true (info)", name, deng, "INFO",
-                    f"median log ratio={fmt(float(np.median(lr2)))} spearman={fmt(rho)} "
-                    f"dispPriorVar={fmt(sj.get('dispPriorVar'))} (true sigma^2={sig2:.2f})")
+            sj = (
+                json.loads((d / "scalars.json").read_text())
+                if (d / "scalars.json").exists()
+                else {}
+            )
+            rep.add(
+                "recovery",
+                "DESeq2 MAP dispersion vs true (info)",
+                name,
+                deng,
+                "INFO",
+                f"median log ratio={fmt(float(np.median(lr2)))} spearman={fmt(rho)} "
+                f"dispPriorVar={fmt(sj.get('dispPriorVar'))} (true sigma^2={sig2:.2f})",
+            )
         d = s.diag("edger")
         if d is not None and (d / "disp.csv").exists():
             g = pd.read_csv(d / "disp.csv").set_index("id")
@@ -348,9 +421,16 @@ def check_recovery(rep, root, prefix, engines):
             ref = tr["disp_trend"].to_numpy()[m] * math.exp(sig2 / 2)
             med = float(np.median(np.log(g["trended_disp"].to_numpy()[m] / ref)))
             st_ = "INFO" if has_out else verdict(abs(med) <= T["disp_trend_logratio_max"])
-            rep.add("recovery", "edgeR dispersion trend vs E[true disp | mean]", name, "edger", st_,
-                    f"median log ratio={fmt(med)}", f"|.| <= {T['disp_trend_logratio_max']}",
-                    OUT_NOTE if has_out else "genes with true mean >= 50")
+            rep.add(
+                "recovery",
+                "edgeR dispersion trend vs E[true disp | mean]",
+                name,
+                "edger",
+                st_,
+                f"median log ratio={fmt(med)}",
+                f"|.| <= {T['disp_trend_logratio_max']}",
+                OUT_NOTE if has_out else "genes with true mean >= 50",
+            )
         if s.params.get("mode") == "anova":
             continue
         for eng in ("edger", "deseq2"):
@@ -367,22 +447,41 @@ def check_recovery(rep, root, prefix, engines):
                     dlt = est[msk] - tl[msk]
                     b = float(np.mean(dlt))
                     se = float(np.std(dlt, ddof=1) / math.sqrt(msk.sum()))
-                    rep.add("recovery", f"LFC bias ({sub} genes, mu>=50)", f"{name} {lab}", eng,
-                            verdict(abs(b) <= T["lfc_bias_max"]), f"{fmt(b)} (se {fmt(se)}, n={msk.sum()})",
-                            f"|.| <= {T['lfc_bias_max']}")
+                    rep.add(
+                        "recovery",
+                        f"LFC bias ({sub} genes, mu>=50)",
+                        f"{name} {lab}",
+                        eng,
+                        verdict(abs(b) <= T["lfc_bias_max"]),
+                        f"{fmt(b)} (se {fmt(se)}, n={msk.sum()})",
+                        f"|.| <= {T['lfc_bias_max']}",
+                    )
                 lo, hi = o[f"CILeft {lab}"].to_numpy(float), o[f"CIRight {lab}"].to_numpy(float)
                 inside = (lo <= tl) & (tl <= hi)
                 okall = np.isfinite(lo) & np.isfinite(hi)
                 okc = okall & ~out_all.loc[gid].to_numpy()
                 cov = float(np.mean(inside[okc]))
                 if has_out:
-                    rep.add("recovery", "95% CI coverage incl. planted outlier genes (info)", f"{name} {lab}", eng,
-                            "INFO", fmt(float(np.mean(inside[okall]))))
+                    rep.add(
+                        "recovery",
+                        "95% CI coverage incl. planted outlier genes (info)",
+                        f"{name} {lab}",
+                        eng,
+                        "INFO",
+                        fmt(float(np.mean(inside[okall]))),
+                    )
                 covh = float(np.mean(inside[okc & (mu >= T["lfc_mu_min"])]))
                 covd = float(np.mean(inside[okc & (tl != 0)]))
                 thr = T["ci_cover_min"][eng]
-                rep.add("recovery", "95% CI coverage", f"{name} {lab}", eng, verdict(cov >= thr),
-                        f"{fmt(cov)} (mu>=50: {fmt(covh)}, DE: {fmt(covd)}, n={okc.sum()})", f">= {thr}")
+                rep.add(
+                    "recovery",
+                    "95% CI coverage",
+                    f"{name} {lab}",
+                    eng,
+                    verdict(cov >= thr),
+                    f"{fmt(cov)} (mu>=50: {fmt(covh)}, DE: {fmt(covd)}, n={okc.sum()})",
+                    f">= {thr}",
+                )
 
 
 # --------------------------------------------------------------------------------------
@@ -427,17 +526,37 @@ def check_shrinkage(rep, root, prefix, engines):
                     cover.append(((lo <= tl) & (tl <= hi))[okc])
             em, es = np.concatenate(e_mle), np.concatenate(e_shr)
             ratio = float(np.mean(es**2) / np.mean(em**2))
-            rep.add("shrinkage", "MSE(shrunk)/MSE(MLE) vs true LFC", scope, eng,
-                    verdict(ratio < T["mse_ratio_max"]), f"{fmt(ratio)} (n={len(em)})", f"< {T['mse_ratio_max']}",
-                    "planted outlier genes excluded")
+            rep.add(
+                "shrinkage",
+                "MSE(shrunk)/MSE(MLE) vs true LFC",
+                scope,
+                eng,
+                verdict(ratio < T["mse_ratio_max"]),
+                f"{fmt(ratio)} (n={len(em)})",
+                f"< {T['mse_ratio_max']}",
+                "planted outlier genes excluded",
+            )
             om, osh = np.concatenate(o_mle), np.concatenate(o_shr)
             if len(om):
-                rep.add("shrinkage", "MSE ratio on planted outlier genes (info)", scope, eng, "INFO",
-                        f"{fmt(float(np.mean(osh**2) / np.mean(om**2)))} (n={len(om)})",
-                        note="documented: lfcShrink refits on counts(dds), the original counts, while the "
-                             "MLE uses Cook's-replaced counts")
+                rep.add(
+                    "shrinkage",
+                    "MSE ratio on planted outlier genes (info)",
+                    scope,
+                    eng,
+                    "INFO",
+                    f"{fmt(float(np.mean(osh**2) / np.mean(om**2)))} (n={len(om)})",
+                    note="documented: lfcShrink refits on counts(dds), the original counts, while the "
+                    "MLE uses Cook's-replaced counts",
+                )
             cv = np.concatenate(cover)
-            rep.add("shrinkage", "95% CrI coverage (info)", scope, eng, "INFO", f"{fmt(float(cv.mean()))} (n={len(cv)})")
+            rep.add(
+                "shrinkage",
+                "95% CrI coverage (info)",
+                scope,
+                eng,
+                "INFO",
+                f"{fmt(float(cv.mean()))} (n={len(cv)})",
+            )
     if "deseq2_ashr" not in engines:
         return
     L_all, E_all, Z_all, n_sc = [], [], [], 0
@@ -459,25 +578,46 @@ def check_shrinkage(rep, root, prefix, engines):
         rep.add("shrinkage", "ashr lfsr calibration", "all", "deseq2_ashr", "SKIP", "not exposed")
         return
     L, E, Zr = np.concatenate(L_all), np.concatenate(E_all), np.concatenate(Z_all)
-    rep.add("shrinkage", f"true-zero fraction among lfsr<={T['lfsr_cut']} (info)", "all scenarios", "deseq2_ashr",
-            "INFO", fmt(float(Zr[L <= T["lfsr_cut"]].mean())),
-            note="documented: method='shrink' has no point mass at 0, so its lfsr is a sign error rate "
-                 "only and says nothing about true zeros (pi0 = 0.8 here)")
+    rep.add(
+        "shrinkage",
+        f"true-zero fraction among lfsr<={T['lfsr_cut']} (info)",
+        "all scenarios",
+        "deseq2_ashr",
+        "INFO",
+        fmt(float(Zr[L <= T["lfsr_cut"]].mean())),
+        note="documented: method='shrink' has no point mass at 0, so its lfsr is a sign error rate "
+        "only and says nothing about true zeros (pi0 = 0.8 here)",
+    )
     L, E = L[~Zr], E[~Zr]
     S = L <= T["lfsr_cut"]
     est, real = float(L[S].mean()), float(E[S].mean())
     ub = est + T["lfsr_z"] * math.sqrt(max(est * (1 - est), 1e-12) / S.sum())
-    rep.add("shrinkage", f"ashr realised false sign rate among lfsr<={T['lfsr_cut']}", "all scenarios",
-            "deseq2_ashr", verdict(real <= ub), f"realised {fmt(real)} vs mean lfsr {fmt(est)} (n={S.sum()})",
-            f"<= {fmt(ub)}", "genes with true LFC != 0; planted outliers excluded")
+    rep.add(
+        "shrinkage",
+        f"ashr realised false sign rate among lfsr<={T['lfsr_cut']}",
+        "all scenarios",
+        "deseq2_ashr",
+        verdict(real <= ub),
+        f"realised {fmt(real)} vs mean lfsr {fmt(est)} (n={S.sum()})",
+        f"<= {fmt(ub)}",
+        "genes with true LFC != 0; planted outliers excluded",
+    )
     bins = [0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5001]
     parts = []
     for lo, hi in itertools.pairwise(bins):
         b = (L > lo) & (L <= hi) if lo > 0 else (L <= hi)
         if b.sum():
-            parts.append(f"({lo},{hi:.2f}] {fmt(float(L[b].mean()), 2)}->{fmt(float(E[b].mean()), 2)} n={b.sum()}")
-    rep.add("shrinkage", "ashr lfsr calibration curve: mean lfsr -> realised (info)", "all scenarios",
-            "deseq2_ashr", "INFO", "; ".join(parts))
+            parts.append(
+                f"({lo},{hi:.2f}] {fmt(float(L[b].mean()), 2)}->{fmt(float(E[b].mean()), 2)} n={b.sum()}"
+            )
+    rep.add(
+        "shrinkage",
+        "ashr lfsr calibration curve: mean lfsr -> realised (info)",
+        "all scenarios",
+        "deseq2_ashr",
+        "INFO",
+        "; ".join(parts),
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -525,8 +665,14 @@ def cert_deseq2(rep, s, eng="deseq2"):
     # DESeq2 replaces nothing: every model-matrix cell below minReplicatesForReplace = 7.
     min_cell = int(pd.Series([tuple(r) for r in X]).value_counts().min())
     if "replace" not in g and min_cell >= 7:
-        rep.add("certificate", "DESeq2 certificates", s.name, eng, "SKIP",
-                "replace flags / replaced counts not exposed and replacement is active (cells >= 7)")
+        rep.add(
+            "certificate",
+            "DESeq2 certificates",
+            s.name,
+            eng,
+            "SKIP",
+            "replace flags / replaced counts not exposed and replacement is active (cells >= 7)",
+        )
         return
     y = s.counts.loc[g.index, reps].to_numpy(float)
     yfit = y.copy()
@@ -545,10 +691,17 @@ def cert_deseq2(rep, s, eng="deseq2"):
     edge = mu.min(axis=1) < T["boundary_mu"]
     inner = conv & ~edge
     zmax = float(np.max(az[inner]))
-    rep.add("certificate", "NB score ~ 0 at IRLS MLE", s.name, eng, verdict(zmax <= T["score_z_max"]),
-            f"max|score/sqrt(I)|={fmt(zmax)} (q99.9 {fmt(float(np.quantile(az[inner], 0.999)))}, "
-            f"{inner.sum()} genes; {edge.sum()} near boundary max {fmt(float(az[edge].max()) if edge.any() else 0.0)})",
-            f"<= {T['score_z_max']}", "ridge 1e-6 (log2) included; near boundary = a fitted mean < 0.5")
+    rep.add(
+        "certificate",
+        "NB score ~ 0 at IRLS MLE",
+        s.name,
+        eng,
+        verdict(zmax <= T["score_z_max"]),
+        f"max|score/sqrt(I)|={fmt(zmax)} (q99.9 {fmt(float(np.quantile(az[inner], 0.999)))}, "
+        f"{inner.sum()} genes; {edge.sum()} near boundary max {fmt(float(az[edge].max()) if edge.any() else 0.0)})",
+        f"<= {T['score_z_max']}",
+        "ridge 1e-6 (log2) included; near boundary = a fitted mean < 0.5",
+    )
     conv = inner & (az <= T["score_tight"])
     w = mu / (1 + alpha[:, None] * mu)
     A = xtwx(w, X)
@@ -556,15 +709,29 @@ def cert_deseq2(rep, s, eng="deseq2"):
     se = np.sqrt(np.einsum("gkk->gk", cov @ A @ cov)) / LN2
     se_rep = g[[f"SE_{r}" for r in rn]].to_numpy(float)
     e = max_rel(se[conv], se_rep[conv])
-    rep.add("certificate", "SE = sqrt(diag((X'WX)^-1)) / ln2 at the MLE", s.name, eng, verdict(e <= T["se_rel"]),
-            f"max rel={fmt(e)} ({conv.sum()} genes)", f"<= {T['se_rel']}", "genes whose score z <= 1e-4")
+    rep.add(
+        "certificate",
+        "SE = sqrt(diag((X'WX)^-1)) / ln2 at the MLE",
+        s.name,
+        eng,
+        verdict(e <= T["se_rel"]),
+        f"max rel={fmt(e)} ({conv.sum()} genes)",
+        f"<= {T['se_rel']}",
+        "genes whose score z <= 1e-4",
+    )
     if s.params.get("mode") == "anova":
         return
-    repl = (g["replace"].astype(str).str.upper().eq("TRUE").to_numpy() if "replace" in g
-            else np.zeros(len(g), bool))
+    repl = (
+        g["replace"].astype(str).str.upper().eq("TRUE").to_numpy()
+        if "replace" in g
+        else np.zeros(len(g), bool)
+    )
     has_cooks = (d / "cooks.csv").exists()
-    cooks_rep = (pd.read_csv(d / "cooks.csv").set_index("id").loc[g.index, reps].to_numpy(float)
-                 if has_cooks else None)
+    cooks_rep = (
+        pd.read_csv(d / "cooks.csv").set_index("id").loc[g.index, reps].to_numpy(float)
+        if has_cooks
+        else None
+    )
     p = X.shape[1]
     arob, cells, big = robust_mom_disp(y / sf, X)
     H = np.einsum("gm,mk,gkl,ml->gm", w, X, cov, X)
@@ -572,53 +739,111 @@ def cert_deseq2(rep, s, eng="deseq2"):
     cooks = (y - mu) ** 2 / V / p * H / (1 - H) ** 2
     # Rows that hit the IRLS iteration cap go to DESeq2's optim fallback, which updates beta, SE
     # and mu but keeps the IRLS hat diagonals (fitNbinomGLMs.R), so their Cook's uses a stale H.
-    it = pd.to_numeric(g["betaIter"], errors="coerce").to_numpy() if "betaIter" in g else np.zeros(len(g))
+    it = (
+        pd.to_numeric(g["betaIter"], errors="coerce").to_numpy()
+        if "betaIter" in g
+        else np.zeros(len(g))
+    )
     optim_rows = np.nan_to_num(it, nan=0) >= 100
     if optim_rows.any():
-        rep.add("certificate", "Cook's skipped on optim-fallback rows (info)", s.name, eng, "INFO",
-                f"{int(optim_rows.sum())} genes", note="documented: DESeq2 keeps the IRLS hat diagonals after optim")
+        rep.add(
+            "certificate",
+            "Cook's skipped on optim-fallback rows (info)",
+            s.name,
+            eng,
+            "INFO",
+            f"{int(optim_rows.sum())} genes",
+            note="documented: DESeq2 keeps the IRLS hat diagonals after optim",
+        )
     keep = ~repl & conv & ~optim_rows
     elig = cells.isin(big).to_numpy()
     if has_cooks:
         e = max_rel(cooks[keep], cooks_rep[keep], floor=1e-8)
-        rep.add("certificate", "Cook's distance recomputed (robust MoM disp, hat diag)", s.name, eng,
-                verdict(e <= T["cooks_rel"]), f"max rel={fmt(e)} ({keep.sum()} genes; refit genes skipped)",
-                f"<= {T['cooks_rel']}")
+        rep.add(
+            "certificate",
+            "Cook's distance recomputed (robust MoM disp, hat diag)",
+            s.name,
+            eng,
+            verdict(e <= T["cooks_rel"]),
+            f"max rel={fmt(e)} ({keep.sum()} genes; refit genes skipped)",
+            f"<= {T['cooks_rel']}",
+        )
     elif elig.any():
         # Only maxCooks exposed: certify it as the max of the recomputed Cook's over samples in
         # cells with >= 3 replicates (DESeq2 recordMaxCooks).
         mc = g["maxCooks"].to_numpy(float)
         k2 = keep & np.isfinite(mc)
         e = max_rel(cooks[k2][:, elig].max(axis=1), mc[k2], floor=1e-8)
-        rep.add("certificate", "maxCooks = max recomputed Cook's over cells >= 3", s.name, eng,
-                verdict(e <= T["cooks_rel"]), f"max rel={fmt(e)} ({k2.sum()} genes)", f"<= {T['cooks_rel']}",
-                "per-sample Cook's not exposed")
+        rep.add(
+            "certificate",
+            "maxCooks = max recomputed Cook's over cells >= 3",
+            s.name,
+            eng,
+            verdict(e <= T["cooks_rel"]),
+            f"max rel={fmt(e)} ({k2.sum()} genes)",
+            f"<= {T['cooks_rel']}",
+            "per-sample Cook's not exposed",
+        )
     m = sc["m"]
     cutoff = sc.get("cooks_cutoff", float(stats.f.ppf(0.99, p, m - p)) if m > p else None)
     o = s.out(eng)
     if not (m > p and cutoff is not None and o is not None):
-        rep.add("certificate", "Cook's flagging", s.name, eng, "INFO", "not applied (m <= p or no cell with >= 3)")
+        rep.add(
+            "certificate",
+            "Cook's flagging",
+            s.name,
+            eng,
+            "INFO",
+            "not applied (m <= p or no cell with >= 3)",
+        )
         return
     if not elig.any():
-        rep.add("certificate", "Cook's flagging", s.name, eng, "INFO", "no cell with >= 3 samples: maxCooks NA")
+        rep.add(
+            "certificate",
+            "Cook's flagging",
+            s.name,
+            eng,
+            "INFO",
+            "no cell with >= 3 samples: maxCooks NA",
+        )
         return
     if cells.value_counts().min() >= 7:
         flag = np.any(cooks_rep[:, elig] > cutoff, axis=1)
         agree = float(np.mean(flag == repl))
-        rep.add("certificate", "replaced genes <=> some Cook's > qf(.99,p,m-p)", s.name, eng,
-                verdict(agree == 1.0), f"agreement={fmt(agree)} ({repl.sum()} replaced)", "== 1")
+        rep.add(
+            "certificate",
+            "replaced genes <=> some Cook's > qf(.99,p,m-p)",
+            s.name,
+            eng,
+            verdict(agree == 1.0),
+            f"agreement={fmt(agree)} ({repl.sum()} replaced)",
+            "== 1",
+        )
         out_g = s.truth.loc[g.index, "outlier"].astype(str).str.upper().eq("TRUE").to_numpy()
         if out_g.any():
-            rep.add("recovery", "planted outliers replaced (info)", s.name, eng, "INFO",
-                    f"recall={fmt(float(np.mean(repl[out_g])))} ({out_g.sum()} planted), "
-                    f"false flag rate={fmt(float(np.mean(repl[~out_g])))}")
+            rep.add(
+                "recovery",
+                "planted outliers replaced (info)",
+                s.name,
+                eng,
+                "INFO",
+                f"recall={fmt(float(np.mean(repl[out_g])))} ({out_g.sum()} planted), "
+                f"false flag rate={fmt(float(np.mean(repl[~out_g])))}",
+            )
     else:
         maxc = np.max(cooks_rep[:, elig], axis=1) if has_cooks else g["maxCooks"].to_numpy(float)
         pna = o.loc[g.index, f"PValue {s.labels[0]}"].isna().to_numpy()
         flag = maxc > cutoff
         agree = float(np.mean(flag == pna))
-        rep.add("certificate", "PValue NA <=> maxCooks > qf(.99,p,m-p)", s.name, eng,
-                verdict(agree == 1.0), f"agreement={fmt(agree)} ({flag.sum()} flagged)", "== 1")
+        rep.add(
+            "certificate",
+            "PValue NA <=> maxCooks > qf(.99,p,m-p)",
+            s.name,
+            eng,
+            verdict(agree == 1.0),
+            f"agreement={fmt(agree)} ({flag.sum()} flagged)",
+            "== 1",
+        )
 
 
 def cert_wald(rep, s, eng="deseq2"):
@@ -636,9 +861,15 @@ def cert_wald(rep, s, eng="deseq2"):
         lo, hi = o[f"CILeft {lab}"].to_numpy(float), o[f"CIRight {lab}"].to_numpy(float)
         e3 = max(max_rel(lfc - Z975 * se, lo, 1e-8), max_rel(lfc + Z975 * se, hi, 1e-8))
         good = e1 <= T["wald_rel"] and e2 <= T["p_rel"] and e3 <= T["p_rel"]
-        rep.add("certificate", "Wald: stat=LFC/SE, p=2*Phi(-|stat|), CI=LFC+-z*SE", f"{s.name} {lab}", eng,
-                verdict(good), f"rel {fmt(e1)} / {fmt(e2)} / {fmt(e3)}",
-                f"<= {T['wald_rel']} / {T['p_rel']} / {T['p_rel']}")
+        rep.add(
+            "certificate",
+            "Wald: stat=LFC/SE, p=2*Phi(-|stat|), CI=LFC+-z*SE",
+            f"{s.name} {lab}",
+            eng,
+            verdict(good),
+            f"rel {fmt(e1)} / {fmt(e2)} / {fmt(e3)}",
+            f"<= {T['wald_rel']} / {T['p_rel']} / {T['p_rel']}",
+        )
 
 
 def cert_lfc_reparam(rep, s, eng="deseq2"):
@@ -647,8 +878,11 @@ def cert_lfc_reparam(rep, s, eng="deseq2"):
     if d is None or o is None or len(s.labels) < 3:
         return
     g = pd.read_csv(d / "genes.csv").set_index("id")
-    repl = (g["replace"].astype(str).str.upper().eq("TRUE").to_numpy() if "replace" in g
-            else np.zeros(len(g), bool))
+    repl = (
+        g["replace"].astype(str).str.upper().eq("TRUE").to_numpy()
+        if "replace" in g
+        else np.zeros(len(g), bool)
+    )
     sc = json.loads((d / "scalars.json").read_text())
     rn = sc["results_names"]
     base = [r for r in rn if r.startswith("condition_")]
@@ -660,9 +894,16 @@ def cert_lfc_reparam(rep, s, eng="deseq2"):
             t = o.loc[g.index, f"Log2FC {lab}"]
             ok = ~repl & np.isfinite(t.to_numpy()) & (np.abs(c.to_numpy()) < 20)
             e = float(np.max(np.abs(c.to_numpy()[ok] - t.to_numpy()[ok])))
-            rep.add("certificate", "relevelled LFC = contrast of base fit (log2)", f"{s.name} {lab}", eng,
-                    verdict(e <= 1e-4), f"max abs diff={fmt(e)}", "<= 1e-4",
-                    "two IRLS solutions to the same likelihood; tolerance = IRLS convergence")
+            rep.add(
+                "certificate",
+                "relevelled LFC = contrast of base fit (log2)",
+                f"{s.name} {lab}",
+                eng,
+                verdict(e <= 1e-4),
+                f"max abs diff={fmt(e)}",
+                "<= 1e-4",
+                "two IRLS solutions to the same likelihood; tolerance = IRLS convergence",
+            )
 
 
 def cert_shrink_tables(rep, s, eng):
@@ -678,14 +919,27 @@ def cert_shrink_tables(rep, s, eng):
         e2 = max_rel(o[f"PValue {lab}"], bp, 1e-300)
         na_same = bool((o[f"PValue {lab}"].isna() == bp.isna()).all())
         good = e1 <= T["wald_rel"] and e2 <= T["wald_rel"] and na_same
-        rep.add("certificate", "unshrunk stat/p kept under shrinkage", f"{s.name} {lab}", eng, verdict(good),
-                f"rel {fmt(e1)} / {fmt(e2)}, NA pattern same={na_same}")
+        rep.add(
+            "certificate",
+            "unshrunk stat/p kept under shrinkage",
+            f"{s.name} {lab}",
+            eng,
+            verdict(good),
+            f"rel {fmt(e1)} / {fmt(e2)}, NA pattern same={na_same}",
+        )
         if eng != "deseq2_apeglm":
             lfc, se = o[f"Log2FC {lab}"].to_numpy(float), o[f"SE {lab}"].to_numpy(float)
             lo, hi = o[f"CrILeft {lab}"].to_numpy(float), o[f"CrIRight {lab}"].to_numpy(float)
             e3 = max(max_rel(lfc - Z975 * se, lo, 1e-8), max_rel(lfc + Z975 * se, hi, 1e-8))
-            rep.add("certificate", "CrI = shrunk LFC +- z*SE", f"{s.name} {lab}", eng, verdict(e3 <= T["p_rel"]),
-                    f"max rel={fmt(e3)}", f"<= {T['p_rel']}")
+            rep.add(
+                "certificate",
+                "CrI = shrunk LFC +- z*SE",
+                f"{s.name} {lab}",
+                eng,
+                verdict(e3 <= T["p_rel"]),
+                f"max rel={fmt(e3)}",
+                f"<= {T['p_rel']}",
+            )
 
 
 def apeglm_prior_var(lfc_ln, se_ln, min_var=0.001**2, max_var=20.0**2):
@@ -707,14 +961,21 @@ def cert_apeglm(rep, s):
     d, base = s.diag("deseq2_apeglm"), s.diag("deseq2")
     o, b = s.out("deseq2_apeglm"), s.out("deseq2")
     if d is None or base is None or o is None:
-        rep.add("certificate", "apeglm certificates", s.name, "deseq2_apeglm", "SKIP", "not exposed")
+        rep.add(
+            "certificate", "apeglm certificates", s.name, "deseq2_apeglm", "SKIP", "not exposed"
+        )
         return
     g = pd.read_csv(base / "genes.csv").set_index("id")
     for k, lab in enumerate(s.labels, 1):
         meta = json.loads((d / f"cmp{k}.json").read_text())
         a = pd.read_csv(d / f"cmp{k}.csv").set_index("id")
         X, reps, _ = design_from(d / f"cmp{k}_design.csv")
-        sf = pd.read_csv(base / "samples.csv").set_index("replicate").loc[reps, "size_factor"].to_numpy()
+        sf = (
+            pd.read_csv(base / "samples.csv")
+            .set_index("replicate")
+            .loc[reps, "size_factor"]
+            .to_numpy()
+        )
         y = s.counts.loc[a.index, reps].to_numpy(float)
         size = (1 / g.loc[a.index, "dispersion"].to_numpy(float))[:, None]
         mp = a[[c for c in a.columns if c.startswith("map_")]].to_numpy(float)
@@ -734,7 +995,9 @@ def cert_apeglm(rep, s):
         p_ = X.shape[1]
         H = np.einsum("gi,ij,ik->gjk", w, X, X)
         for j in range(p_):
-            H[:, j, j] += (1 / sig2) if j != ci else 2 * (S2 - mp[:, ci] ** 2) / (S2 + mp[:, ci] ** 2) ** 2
+            H[:, j, j] += (
+                (1 / sig2) if j != ci else 2 * (S2 - mp[:, ci] ** 2) / (S2 + mp[:, ci] ** 2) ** 2
+            )
         okH = np.isfinite(H).all(axis=(1, 2)) & np.isfinite(grad).all(axis=1)
         step = np.full_like(mp, np.nan)
         step[okH] = np.linalg.solve(H[okH], -grad[okH][:, :, None])[:, :, 0]
@@ -747,24 +1010,42 @@ def cert_apeglm(rep, s):
         conv = (a["conv"].to_numpy() == 0) & okH
         rd = dec[conv] / cn[conv]
         sdz = np.abs(step[conv, ci]) / a["sd"].to_numpy(float)[conv]
-        rep.add("certificate", "apeglm MAP stationary (Newton decrement / cnst)", f"{s.name} {lab}",
-                "deseq2_apeglm", verdict(float(np.max(rd)) <= T["apeglm_newton_dec_max"]),
-                f"max={fmt(float(np.max(rd)))} q99={fmt(float(np.quantile(rd, 0.99)))} "
-                f"({conv.sum()} genes, {(~conv).sum()} conv!=0)",
-                f"<= {T['apeglm_newton_dec_max']}", "Y = original counts, offset log(sf), Cauchy(0,S) on coef")
-        rep.add("certificate", "apeglm MAP distance to exact mode, posterior sd units (info)",
-                f"{s.name} {lab}", "deseq2_apeglm", "INFO",
-                f"median {fmt(float(np.median(sdz)))} q99 {fmt(float(np.quantile(sdz, 0.99)))} "
-                f"max {fmt(float(np.max(sdz)))}", note="documented: L-BFGS stops on the scaled objective")
+        rep.add(
+            "certificate",
+            "apeglm MAP stationary (Newton decrement / cnst)",
+            f"{s.name} {lab}",
+            "deseq2_apeglm",
+            verdict(float(np.max(rd)) <= T["apeglm_newton_dec_max"]),
+            f"max={fmt(float(np.max(rd)))} q99={fmt(float(np.quantile(rd, 0.99)))} "
+            f"({conv.sum()} genes, {(~conv).sum()} conv!=0)",
+            f"<= {T['apeglm_newton_dec_max']}",
+            "Y = original counts, offset log(sf), Cauchy(0,S) on coef",
+        )
+        rep.add(
+            "certificate",
+            "apeglm MAP distance to exact mode, posterior sd units (info)",
+            f"{s.name} {lab}",
+            "deseq2_apeglm",
+            "INFO",
+            f"median {fmt(float(np.median(sdz)))} q99 {fmt(float(np.quantile(sdz, 0.99)))} "
+            f"max {fmt(float(np.max(sdz)))}",
+            note="documented: L-BFGS stops on the scaled objective",
+        )
         if b is not None:
             mle = b[f"Log2FC {lab}"].reindex(a.index).to_numpy(float) * LN2
             sem = b[f"SE {lab}"].reindex(a.index).to_numpy(float) * LN2
             pv = apeglm_prior_var(mle, sem)
             err = abs(pv - meta["prior_var"])
             scale_ok = abs(min(math.sqrt(pv), 1.0) - meta["prior_scale"]) <= 1e-3
-            rep.add("certificate", "apeglm prior variance (Efron-Morris) recomputed", f"{s.name} {lab}",
-                    "deseq2_apeglm", verdict(err <= T["prior_var_abs"] and scale_ok),
-                    f"|dA|={fmt(err)} (A={fmt(pv)}, S={fmt(meta['prior_scale'])})", f"<= {T['prior_var_abs']}")
+            rep.add(
+                "certificate",
+                "apeglm prior variance (Efron-Morris) recomputed",
+                f"{s.name} {lab}",
+                "deseq2_apeglm",
+                verdict(err <= T["prior_var_abs"] and scale_ok),
+                f"|dA|={fmt(err)} (A={fmt(pv)}, S={fmt(meta['prior_scale'])})",
+                f"<= {T['prior_var_abs']}",
+            )
         lfc = o.loc[a.index, f"Log2FC {lab}"].to_numpy(float)
         se = o.loc[a.index, f"SE {lab}"].to_numpy(float)
         sd = a["sd"].to_numpy(float)
@@ -772,9 +1053,19 @@ def cert_apeglm(rep, s):
         e2 = max_rel(sd / LN2, se, 1e-8)
         lo = o.loc[a.index, f"CrILeft {lab}"].to_numpy(float)
         hi = o.loc[a.index, f"CrIRight {lab}"].to_numpy(float)
-        e3 = max(max_rel((mp[:, ci] - Z975 * sd) / LN2, lo, 1e-8), max_rel((mp[:, ci] + Z975 * sd) / LN2, hi, 1e-8))
-        rep.add("certificate", "apeglm table = MAP, sd, MAP +- z*sd (log2)", f"{s.name} {lab}", "deseq2_apeglm",
-                verdict(max(e1, e2, e3) <= T["p_rel"]), f"rel {fmt(e1)} / {fmt(e2)} / {fmt(e3)}", f"<= {T['p_rel']}")
+        e3 = max(
+            max_rel((mp[:, ci] - Z975 * sd) / LN2, lo, 1e-8),
+            max_rel((mp[:, ci] + Z975 * sd) / LN2, hi, 1e-8),
+        )
+        rep.add(
+            "certificate",
+            "apeglm table = MAP, sd, MAP +- z*sd (log2)",
+            f"{s.name} {lab}",
+            "deseq2_apeglm",
+            verdict(max(e1, e2, e3) <= T["p_rel"]),
+            f"rel {fmt(e1)} / {fmt(e2)} / {fmt(e3)}",
+            f"<= {T['p_rel']}",
+        )
 
 
 def cert_ashr(rep, s):
@@ -796,10 +1087,16 @@ def cert_ashr(rep, s):
         viol = float(np.max(gradk) - 1)
         supp = pi > 1e-6 * pi.max()
         eq = float(np.max(np.abs(gradk[supp] - 1)))
-        rep.add("certificate", "mixture MLE KKT (max_k grad<=1, =1 on support)", f"{s.name} {lab}", "deseq2_ashr",
-                verdict(viol <= T["kkt_tol"] and eq <= T["kkt_tol"]),
-                f"max excess={fmt(viol)}, support dev={fmt(eq)} ({supp.sum()}/{len(pi)} comps)",
-                f"<= {T['kkt_tol']}", f"sum(pi)={float(pi.sum()):.10f}")
+        rep.add(
+            "certificate",
+            "mixture MLE KKT (max_k grad<=1, =1 on support)",
+            f"{s.name} {lab}",
+            "deseq2_ashr",
+            verdict(viol <= T["kkt_tol"] and eq <= T["kkt_tol"]),
+            f"max excess={fmt(viol)}, support dev={fmt(eq)} ({supp.sum()}/{len(pi)} comps)",
+            f"<= {T['kkt_tol']}",
+            f"sum(pi)={float(pi.sum()):.10f}",
+        )
         post_w = pi[None, :] * L / Lp[:, None]
         v = sk**2
         s2 = se[:, None] ** 2
@@ -808,17 +1105,27 @@ def cert_ashr(rep, s):
         pm = (post_w * pm_k).sum(1)
         psd = np.sqrt(np.maximum((post_w * (pv_k + pm_k**2)).sum(1) - pm**2, 0))
         pos = pv_k > 0
-        negk = np.where(pos, stats.norm.cdf(0, pm_k, np.sqrt(np.where(pos, pv_k, 1.0))), (pm_k < 0) * 1.0)
+        negk = np.where(
+            pos, stats.norm.cdf(0, pm_k, np.sqrt(np.where(pos, pv_k, 1.0))), (pm_k < 0) * 1.0
+        )
         zerok = np.where(pos, 0.0, (pm_k == 0) * 1.0)
         neg, zero = (post_w * negk).sum(1), (post_w * zerok).sum(1)
         lfsr = np.where(neg > 0.5 * (1 - zero), 1 - neg, neg + zero)
         e1 = max_rel(pm, a["PosteriorMean"].to_numpy(), 1e-8)
         e2 = max_rel(psd, a["PosteriorSD"].to_numpy(), 1e-8)
         e3 = max_rel(lfsr, a["lfsr"].to_numpy(), 1e-8)
-        e4 = max_rel(a["PosteriorMean"].to_numpy(), o.loc[a.index, f"Log2FC {lab}"].to_numpy(float), 1e-8)
-        rep.add("certificate", "ashr PosteriorMean/SD/lfsr from g; table LFC = PosteriorMean", f"{s.name} {lab}",
-                "deseq2_ashr", verdict(max(e1, e2, e3, e4) <= T["ashr_post_rel"]),
-                f"rel {fmt(e1)} / {fmt(e2)} / {fmt(e3)} / {fmt(e4)}", f"<= {T['ashr_post_rel']}")
+        e4 = max_rel(
+            a["PosteriorMean"].to_numpy(), o.loc[a.index, f"Log2FC {lab}"].to_numpy(float), 1e-8
+        )
+        rep.add(
+            "certificate",
+            "ashr PosteriorMean/SD/lfsr from g; table LFC = PosteriorMean",
+            f"{s.name} {lab}",
+            "deseq2_ashr",
+            verdict(max(e1, e2, e3, e4) <= T["ashr_post_rel"]),
+            f"rel {fmt(e1)} / {fmt(e2)} / {fmt(e3)} / {fmt(e4)}",
+            f"<= {T['ashr_post_rel']}",
+        )
 
 
 def cert_edger(rep, s):
@@ -836,9 +1143,16 @@ def cert_edger(rep, s):
         e2 = max_rel(bh(p[ok]), q[ok], 1e-300)
         okse = np.isfinite(se) & np.isfinite(st) & (st != 0)
         e3 = max_rel(lfc[okse] / se[okse], st[okse])
-        rep.add("certificate", "edgeR stat^2=F, SE=LFC/stat, AdjP=BH(P)", f"{s.name} {lab}", "edger",
-                verdict(max(e1, e2, e3) <= T["p_rel"]), f"rel {fmt(e1)} / {fmt(e2)} / {fmt(e3)}",
-                f"<= {T['p_rel']}", f"{int(np.sum(ok & ~np.isfinite(st)))} genes with stat NaN (F<0)")
+        rep.add(
+            "certificate",
+            "edgeR stat^2=F, SE=LFC/stat, AdjP=BH(P)",
+            f"{s.name} {lab}",
+            "edger",
+            verdict(max(e1, e2, e3) <= T["p_rel"]),
+            f"rel {fmt(e1)} / {fmt(e2)} / {fmt(e3)}",
+            f"<= {T['p_rel']}",
+            f"{int(np.sum(ok & ~np.isfinite(st)))} genes with stat NaN (F<0)",
+        )
     if d is None:
         rep.add("certificate", "edgeR certificates", s.name, "edger", "SKIP", "not exposed")
         return
@@ -854,22 +1168,45 @@ def cert_edger(rep, s):
     nz = (np.abs(beta) < 20).all(axis=1) & (beta > -1e7).all(axis=1)
     _, z = nb_score(y, mu, disp, X, beta)
     zmax = float(np.max(np.abs(z[nz])))
-    rep.add("certificate", "NB score ~ 0 at glmFit MLE (unshrunk coefs)", s.name, "edger",
-            verdict(zmax <= T["score_z_max"]), f"max|score/sqrt(I)|={fmt(zmax)} ({nz.sum()} genes)",
-            f"<= {T['score_z_max']}", "dispersion = fit$dispersion / average.ql.dispersion")
-    dft = np.minimum(g["df_prior"].to_numpy() + g["df_residual_adj"].to_numpy(), sc["df_residual_total"])
+    rep.add(
+        "certificate",
+        "NB score ~ 0 at glmFit MLE (unshrunk coefs)",
+        s.name,
+        "edger",
+        verdict(zmax <= T["score_z_max"]),
+        f"max|score/sqrt(I)|={fmt(zmax)} ({nz.sum()} genes)",
+        f"<= {T['score_z_max']}",
+        "dispersion = fit$dispersion / average.ql.dispersion",
+    )
+    dft = np.minimum(
+        g["df_prior"].to_numpy() + g["df_residual_adj"].to_numpy(), sc["df_residual_total"]
+    )
     for lab in s.labels:
         F = o.loc[g.index, f"F {lab}"].to_numpy(float)
         p = o.loc[g.index, f"PValue {lab}"].to_numpy(float)
         e = p_err(stats.f.sf(F, 1, dft), p)
-        rep.add("certificate", "edgeR QL p = pf(F, 1, min(df.prior+df.res.adj, sum df.res))", f"{s.name} {lab}",
-                "edger", verdict(e <= T["p_rel"]), f"max rel={fmt(e)}", f"<= {T['p_rel']}")
+        rep.add(
+            "certificate",
+            "edgeR QL p = pf(F, 1, min(df.prior+df.res.adj, sum df.res))",
+            f"{s.name} {lab}",
+            "edger",
+            verdict(e <= T["p_rel"]),
+            f"max rel={fmt(e)}",
+            f"<= {T['p_rel']}",
+        )
     k = s.si["condition"].nunique()
     F = o.loc[g.index, "F"].to_numpy(float)
     p = o.loc[g.index, "PValue"].to_numpy(float)
     e = p_err(stats.f.sf(F, k - 1, dft), p)
-    rep.add("certificate", "edgeR omnibus p = pf(F, k-1, df.total)", s.name, "edger", verdict(e <= T["p_rel"]),
-            f"max rel={fmt(e)}", f"<= {T['p_rel']}")
+    rep.add(
+        "certificate",
+        "edgeR omnibus p = pf(F, k-1, df.total)",
+        s.name,
+        "edger",
+        verdict(e <= T["p_rel"]),
+        f"max rel={fmt(e)}",
+        f"<= {T['p_rel']}",
+    )
 
 
 def check_certificates(rep, root, prefix, engines, n_mix=5):
@@ -926,14 +1263,30 @@ def check_agreement(rep, root, prefix, ref_prefix="r"):
         qa, qb = np.concatenate(ql), np.concatenate(rl)
         ra, rb = qa <= 0.05, qb <= 0.05
         jac = (ra & rb).sum() / max((ra | rb).sum(), 1)
-        sgn = float(np.mean(np.sign(x[ok & rb]) == np.sign(y[ok & rb]))) if (ok & rb).any() else float("nan")
-        rep.add("agreement", "pydeseq2 vs R DESeq2 (directional)", name, "deseq2", "INFO",
-                f"LFC pearson={fmt(rho)} median|dLFC|={fmt(float(np.median(np.abs(x[ok] - y[ok]))))} "
-                f"padj<=.05 jaccard={fmt(jac)} (py {ra.sum()}, R {rb.sum()}) sign agree on R hits={fmt(sgn)}")
+        sgn = (
+            float(np.mean(np.sign(x[ok & rb]) == np.sign(y[ok & rb])))
+            if (ok & rb).any()
+            else float("nan")
+        )
+        rep.add(
+            "agreement",
+            "pydeseq2 vs R DESeq2 (directional)",
+            name,
+            "deseq2",
+            "INFO",
+            f"LFC pearson={fmt(rho)} median|dLFC|={fmt(float(np.median(np.abs(x[ok] - y[ok]))))} "
+            f"padj<=.05 jaccard={fmt(jac)} (py {ra.sum()}, R {rb.sum()}) sign agree on R hits={fmt(sgn)}",
+        )
 
 
-def run(engine="r", corpus=DEFAULT_CORPUS, groups=("calibration", "recovery", "shrinkage", "certificate"),
-        rerun=True, out=None, quiet=False):
+def run(
+    engine="r",
+    corpus=DEFAULT_CORPUS,
+    groups=("calibration", "recovery", "shrinkage", "certificate"),
+    rerun=True,
+    out=None,
+    quiet=False,
+):
     prefix = PREFIX[engine]
     if engine == "rust" and rerun:
         # TRUTH_RUST_PYTHON: an interpreter with edge_rust and deseq2_rust installed.
@@ -960,7 +1313,9 @@ def run(engine="r", corpus=DEFAULT_CORPUS, groups=("calibration", "recovery", "s
             print(f"\n## {grp}")
             print(sub.drop(columns="group").to_string(index=False))
         cnt = t["status"].value_counts().to_dict()
-        print(f"\n{engine}: " + ", ".join(f"{k} {v}" for k, v in sorted(cnt.items())) + f"  -> {out}")
+        print(
+            f"\n{engine}: " + ", ".join(f"{k} {v}" for k, v in sorted(cnt.items())) + f"  -> {out}"
+        )
     return t
 
 
@@ -968,7 +1323,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--engine", choices=list(PREFIX), default="r")
     ap.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
-    ap.add_argument("--no-run", action="store_true", help="rust: check existing rust_*.csv without rerunning")
+    ap.add_argument(
+        "--no-run", action="store_true", help="rust: check existing rust_*.csv without rerunning"
+    )
     ap.add_argument("--groups", default="calibration,recovery,shrinkage,certificate")
     ap.add_argument("--out", type=Path)
     a = ap.parse_args(argv)

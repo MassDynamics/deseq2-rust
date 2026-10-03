@@ -7,6 +7,7 @@
 Writes <scenario>/py_deseq2.csv (production column names) and py_deseq2.diag/{samples,genes}.csv.
 Directional comparison only; pydeseq2 is a re-implementation, not a port.
 """
+
 import json
 import os
 import sys
@@ -37,14 +38,24 @@ def run_one(d: Path):
     cond = p["condition_col"]
     meta = si.loc[counts.columns].copy()
     terms = list(p.get("control_cols", [])) + [cond]
-    dds = DeseqDataSet(counts=counts.T, metadata=meta, design="~" + " + ".join(terms),
-                       inference=DefaultInference(n_cpus=1), quiet=True)
+    dds = DeseqDataSet(
+        counts=counts.T,
+        metadata=meta,
+        design="~" + " + ".join(terms),
+        inference=DefaultInference(n_cpus=1),
+        quiet=True,
+    )
     dds.deseq2()
     out = pd.DataFrame({"GroupId": counts.index.astype(int)})
     for _, c in pd.read_csv(d / "comparisons.csv").iterrows():
         lab = f"{c['left']}{p['condition_separator']}{c['right']}"
-        ds = DeseqStats(dds, contrast=[cond, c["left"], c["right"]], alpha=p["deseq2_alpha"],
-                        inference=DefaultInference(n_cpus=1), quiet=True)
+        ds = DeseqStats(
+            dds,
+            contrast=[cond, c["left"], c["right"]],
+            alpha=p["deseq2_alpha"],
+            inference=DefaultInference(n_cpus=1),
+            quiet=True,
+        )
         ds.summary()
         r = ds.results_df.loc[counts.index]
         out[f"Log2FC {lab}"] = r["log2FoldChange"].to_numpy()
@@ -58,12 +69,24 @@ def run_one(d: Path):
     out.to_csv(d / "py_deseq2.csv", index=False)
     dg = d / "py_deseq2.diag"
     dg.mkdir(exist_ok=True)
-    pd.DataFrame({"replicate": counts.columns, "size_factor": dds.obs["size_factors"].to_numpy()
-                  if "size_factors" in dds.obs else dds.obsm["size_factors"]}).to_csv(dg / "samples.csv", index=False)
+    pd.DataFrame(
+        {
+            "replicate": counts.columns,
+            "size_factor": dds.obs["size_factors"].to_numpy()
+            if "size_factors" in dds.obs
+            else dds.obsm["size_factors"],
+        }
+    ).to_csv(dg / "samples.csv", index=False)
     v = dds.var
-    pd.DataFrame({"id": counts.index.astype(int), "baseMean": out["AveExpr"].to_numpy(),
-                  "dispGeneEst": v["genewise_dispersions"].to_numpy(), "dispFit": v["fitted_dispersions"].to_numpy(),
-                  "dispersion": v["dispersions"].to_numpy()}).to_csv(dg / "genes.csv", index=False)
+    pd.DataFrame(
+        {
+            "id": counts.index.astype(int),
+            "baseMean": out["AveExpr"].to_numpy(),
+            "dispGeneEst": v["genewise_dispersions"].to_numpy(),
+            "dispFit": v["fitted_dispersions"].to_numpy(),
+            "dispersion": v["dispersions"].to_numpy(),
+        }
+    ).to_csv(dg / "genes.csv", index=False)
     return "ok"
 
 
