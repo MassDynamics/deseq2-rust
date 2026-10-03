@@ -103,3 +103,49 @@ fn prior_var_simulation_matches_goldens() {
         check_run(run, (m - p) as f64);
     }
 }
+
+fn df1_file(f: &str) -> Vec<f64> {
+    let path = format!(
+        "{}/tests/data/prior_var_df1/{f}",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("{path}: {e}"))
+        .split_whitespace()
+        .map(|t| t.parse().unwrap())
+        .collect()
+}
+
+/// m - p = 1 (review r1, stats item 8a): no corpus run has df = 1, where `rchisq` takes the
+/// gamma GS branch. The 200 x 40 simulated counts must match R exactly, and the synthetic
+/// residuals put the argmin in the interior so the loess and argmin are exercised too.
+#[test]
+fn deseq2_prior_var_df1_draws() {
+    let sim = deseq2_core::prior_var::prior_var_simulation(&df1_file("obs.txt"), 1.0).unwrap();
+    let want = df1_file("sim_counts.txt");
+    assert_eq!(want.len(), 200 * 40);
+    for (i, row) in sim.sim_counts.iter().enumerate() {
+        let w: Vec<i64> = want[i * 40..(i + 1) * 40]
+            .iter()
+            .map(|&v| v as i64)
+            .collect();
+        assert_eq!(row, &w, "df1 sim counts row {}", i + 1);
+    }
+    let a = assert_close("df1 kl", &sim.kl, &df1_file("kl.txt"), 1e-12);
+    let b = assert_close(
+        "df1 loess fitted",
+        &sim.loess_fitted,
+        &df1_file("loess_fitted.txt"),
+        1e-12,
+    );
+    let c = assert_close(
+        "df1 loess predicted",
+        &sim.fine_predicted,
+        &df1_file("fine_predicted.txt"),
+        1e-12,
+    );
+    let am = df1_file("argmin.txt");
+    assert_eq!(sim.argmin_index, am[0] as usize, "df1 argmin index");
+    assert_eq!(sim.prior_var, am[1], "df1 prior var");
+    eprintln!("df1: kl {a:e} fitted {b:e} predicted {c:e}");
+}

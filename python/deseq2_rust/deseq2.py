@@ -185,7 +185,9 @@ def _diag(res: dict, gene_ids: list[str], sample_ids: list[str]) -> dict:
 
     ``samples``: replicate, size_factor. ``genes``: id, baseMean, baseVar, dispGeneEst, dispFit,
     dispersion, maxCooks, then the unshrunk coefficients (log2) and their SEs as ``<coef>`` and
-    ``SE_<coef>`` with DESeq2's ``resultsNames``. ``scalars``: coef_names.
+    ``SE_<coef>`` with DESeq2's ``resultsNames``. ``scalars``: coef_names, and
+    shrink_nonconverged (per comparison, the apeglm rows whose MAP fit did not converge; None
+    for other shrinkage types).
     """
     d = res["diag"]
     ids = [gene_ids[i] for i in d["kept_idx"]]
@@ -207,4 +209,8 @@ def _diag(res: dict, gene_ids: list[str], sample_ids: list[str]) -> dict:
         genes[c] = d["beta"][:, k]
     for k, c in enumerate(d["coef_names"]):
         genes[f"SE_{c}"] = d["se"][:, k]
-    return {"samples": samples, "genes": genes, "scalars": {"coef_names": list(d["coef_names"])}}
+    scalars = {
+        "coef_names": list(d["coef_names"]),
+        "shrink_nonconverged": list(d["shrink_nonconverged"]),
+    }
+    return {"samples": samples, "genes": genes, "scalars": scalars}

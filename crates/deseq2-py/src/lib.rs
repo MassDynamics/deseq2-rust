@@ -185,6 +185,12 @@ fn deseq2_pipeline<'py>(
         dd.set_item("beta", matrix(py, f.test.beta.clone(), nk, p)?)?;
         dd.set_item("se", matrix(py, f.test.se.clone(), nk, p)?)?;
         dd.set_item("max_cooks", vector(py, f.test.max_cooks.clone()))?;
+        let nc: Vec<Option<usize>> = diag
+            .comparisons
+            .iter()
+            .map(|c| c.shrink_nonconverged)
+            .collect();
+        dd.set_item("shrink_nonconverged", nc)?;
         d.set_item("diag", dd)?;
     }
     Ok(d)

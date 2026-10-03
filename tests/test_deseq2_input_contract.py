@@ -228,3 +228,12 @@ def test_rows_are_in_numeric_group_id_order(mode):
     t = deseq2_rust.run(c, si, cmp, dict(p, mode=mode))
     ids = [int(g) for g in t["GroupId"]]
     assert ids == sorted(ids)
+
+
+@pytest.mark.parametrize("shrink,want", [("apeglm", [0]), ("ashr", [None]), ("none", [None])])
+def test_apeglm_nonconvergence_is_counted(shrink, want):
+    # Review r1, stats item 7: rows whose apeglm MAP fit did not converge are reported as a
+    # count per comparison rather than dropped silently (None where apeglm did not run).
+    c, si, cmp, p = _base()
+    _, diag = deseq2_rust.run(c, si, cmp, {**p, "deseq2_lfc_shrinkage": shrink}, diagnostics=True)
+    assert diag["scalars"]["shrink_nonconverged"] == want

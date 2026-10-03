@@ -136,6 +136,9 @@ pub struct ComparisonDiag {
     pub normal_results: Option<ResultsTable>,
     /// Shrunk `log2FoldChange` / `lfcSE` (any shrinkage type).
     pub shrunk: Option<(Vec<f64>, Vec<f64>)>,
+    /// apeglm: rows whose MAP fit did not converge (`fit$diag[, "conv"]` not 0). DESeq2 and
+    /// production drop this silently; it is surfaced here as a count (review r1, stats item 7).
+    pub shrink_nonconverged: Option<usize>,
 }
 
 /// The engine's intermediates.
@@ -398,6 +401,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
             normal: None,
             normal_results: None,
             shrunk: None,
+            shrink_nonconverged: None,
         };
         let shrunk: Option<ShrunkCols> = match shrink {
             "normal" => {
@@ -446,6 +450,12 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
                     &r.se,
                 )
                 .map_err(|e| e.to_string())?;
+                cd.shrink_nonconverged = Some(
+                    a.diag_conv
+                        .iter()
+                        .filter(|&&c| !c.is_nan() && c != 0.0)
+                        .count(),
+                );
                 Some((a.log2_fold_change, a.lfc_se, a.cri_left, a.cri_right))
             }
             _ => None,
