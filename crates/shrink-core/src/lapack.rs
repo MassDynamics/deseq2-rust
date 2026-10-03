@@ -3,7 +3,7 @@
 //! BLAS, `dnrm2` and `dlartg` in their f90 versions). Ported routine by routine:
 //!
 //! - rcond: `dlansy` ('1','L'), `dlange` ('1','M'), `dlacn2`, `dlatrs`, `dtrsv`, `drscl`,
-//!   `dpocon` ('L') and `dgecon` ('1').
+//!   `dpocon` ('L'), `dgecon` ('1') and `dtrcon` ('1','U','N').
 //! - minimum-norm least squares: `dgelsd` for square `A`, one right-hand side and
 //!   `n <= SMLSIZ = 25`, which is the only path mixsqp reaches: `dgebd2` (via `dgebrd`, whose
 //!   block size 32 exceeds n), `dormbr` -> `dorm2r` / `dorml2` -> `dlarf1f`, and `dlalsd`'s
@@ -831,6 +831,59 @@ pub fn dgecon_1(a: &[f64], n: usize, lda: usize, anorm: f64) -> f64 {
             return 0.0;
         }
         rc
+    } else {
+        0.0
+    }
+}
+
+/// dtrcon('1', 'U', 'N'): reciprocal 1-norm condition estimate of the upper triangle of `a`,
+/// with `anorm` = dlantr('1', 'U', 'N'). Returns 0 when dtrcon leaves rcond at zero (a NaN or
+/// zero anorm, or the overflow exit).
+pub fn dtrcon_1u(a: &[f64], n: usize, lda: usize) -> f64 {
+    if n == 0 {
+        return 1.0;
+    }
+    let smlnum = SFMIN * n as f64;
+    let mut anorm: f64 = 0.0;
+    for j in 0..n {
+        let mut sum = 0.0;
+        for i in 0..=j {
+            sum += a[i + j * lda].abs();
+        }
+        if anorm < sum || sum.is_nan() {
+            anorm = sum;
+        }
+    }
+    if anorm.is_nan() || anorm <= 0.0 {
+        return 0.0;
+    }
+    let mut x = vec![0.0; n];
+    let mut v = vec![0.0; n];
+    let mut cnorm = vec![0.0; n];
+    let mut st = Lacn2 {
+        isave: [0; 3],
+        isgn: vec![0; n],
+    };
+    let mut ainvnm = 0.0;
+    let mut kase = 0;
+    let mut normin = false;
+    loop {
+        dlacn2(n, &mut v, &mut x, &mut st, &mut ainvnm, &mut kase);
+        if kase == 0 {
+            break;
+        }
+        let scale = dlatrs(true, kase == 1, true, normin, n, a, lda, &mut x, &mut cnorm);
+        normin = true;
+        if scale != 1.0 {
+            let ix = idamax(n, &x, 0, 1);
+            if scale < x[ix].abs() * smlnum || scale == 0.0 {
+                return 0.0;
+            }
+            drscl(n, scale, &mut x);
+        }
+    }
+    if ainvnm != 0.0 {
+        (1.0 / anorm) / ainvnm
     } else {
         0.0
     }

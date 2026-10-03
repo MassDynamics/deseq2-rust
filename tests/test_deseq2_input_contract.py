@@ -476,3 +476,20 @@ def test_levels_differ_is_checked_before_level_existence(mode):
     cmp = pd.DataFrame({"left": ["B", "Z"], "right": ["A", "Z"]})
     with pytest.raises(ValueError, match="Z and Z should be different level names"):
         deseq2_rust.run(c, si, cmp, dict(p, mode=mode))
+
+
+def test_close_to_singular_irls_solve_falls_back_like_armadillo():
+    """Review deseq2 r3, R3-m5 (probe r3_an_sci_ctrl): fitBeta's ``solve(beta_hat, r, gamma_hat)``
+    estimates rcond with dtrcon and, below eps, warns and solves by dgelsd. The approximate beta
+    leaves a gene unconverged, so it reaches fitNbinomGLMsOptim, whose ``solve(xtwx + ridge)``
+    stops. The port solved exactly, the gene converged and the run returned a table. Production
+    (md-flexi-r45-local, runANOVA, DESeq2 1.50.2) refuses this input with this rcond."""
+    c, si, _, p = _base(ng=300, reps=9, seed=1)
+    si["condition"] = [g for g in "ABC" for _ in range(6)]
+    si["dose"] = [1e-05, 1e-05, 2e-05, 2e-05, 1e15, 1e15] * 3
+    p["control_cols"] = {"Column": "dose", "Type": "numerical"}
+    cmp = pd.DataFrame({"left": ["B", "C", "C"], "right": ["A", "A", "B"]})
+    with pytest.raises(
+        ValueError, match="computationally singular: reciprocal condition number = 1.61191e-31$"
+    ):
+        deseq2_rust.run(c, si, cmp, dict(p, mode="anova"))

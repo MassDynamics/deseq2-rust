@@ -1025,6 +1025,42 @@ pub fn solve_upper(r: &Mat, b: &[f64]) -> Vec<f64> {
     x
 }
 
+/// Armadillo 15.6 `solve(x, R, b)` with default options for the upper-triangular `R` that
+/// `qr_econ` returns (`glue_solve_gen_full`, `solve_trimat_rcond`): `dtrtrs` then
+/// `dtrcon('1','U','N')`. A zero diagonal, or an rcond below eps or NaN, sends the system to
+/// `solve_approx_svd`, LAPACK `dgelsd` with rcond = n * eps, which refuses non-finite input
+/// ("solve(): solution not found"). A 1 x 1 `R` is not triangular to Armadillo and takes the
+/// LU route, which on one element gives the same quotient and an rcond that never fails.
+pub fn arma_solve_upper(r: &Mat, b: &[f64]) -> Result<Vec<f64>, String> {
+    let n = r.nrow;
+    let singular = (0..n).any(|k| r.at(k, k) == 0.0);
+    if !singular {
+        let rcond = if n < 2 {
+            if r.data[0].is_finite() {
+                1.0
+            } else {
+                f64::NAN
+            }
+        } else {
+            shrink_core::lapack::dtrcon_1u(&r.data, n, n)
+        };
+        if !(rcond < f64::EPSILON || rcond.is_nan()) {
+            return Ok(solve_upper(r, b));
+        }
+    }
+    let not_found = || "solve(): solution not found".to_string();
+    if r.data.iter().chain(b).any(|v| !v.is_finite()) {
+        return Err(not_found());
+    }
+    if n > shrink_core::lapack::DGELSD_SMLSIZ {
+        return Err(format!(
+            "solve(): approximate solution for {n} coefficients needs the dgelsd divide and \
+             conquer branch, which is not ported"
+        ));
+    }
+    shrink_core::lapack::dgelsd_square(&r.data, n, b, n as f64 * f64::EPSILON).ok_or_else(not_found)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1070,5 +1106,50 @@ mod tests {
         let b = [1.0, -2.0];
         let rb = mul_vec(&r, &solve_upper(&r, &b));
         assert!((rb[0] - 1.0).abs() < 1e-14 && (rb[1] + 2.0).abs() < 1e-14);
+    }
+
+    /// Reference values from R 4.5 / RcppArmadillo 15.6 in md-flexi-r45-local: `rcond(R, norm
+    /// = "O", triangular = TRUE)` (LAPACK dtrcon) and `arma::solve(x, R, b)` via cppFunction,
+    /// which warns "close to singular; rcond: 5.07029e-33" and takes solve_approx_svd.
+    #[test]
+    fn arma_solve_upper_matches_armadillo() {
+        let mut r = Mat::from_col_major(
+            4,
+            4,
+            vec![
+                -4.0, 0.0, 0.0, 0.0, -1.3, 2.1, 0.0, 0.0, -1.2, -0.7, 1.9, 0.0, -3e15, 1e15, 5e14,
+                0.03,
+            ],
+        );
+        let b = [1.5, -2.25, 0.75, 3.125];
+        let rcond = shrink_core::lapack::dtrcon_1u(&r.data, 4, 4);
+        assert_eq!(rcond, 5.070288301167497e-33);
+        let want = [
+            -8.292682926829272e-31,
+            -2.9582283945787943e-31,
+            -2.4878048780487813e-31,
+            -6.219512195121952e-16,
+        ];
+        assert_eq!(arma_solve_upper(&r, &b).unwrap(), want);
+
+        *r.at_mut(0, 3) = -3.0;
+        *r.at_mut(1, 3) = 1.0;
+        *r.at_mut(2, 3) = 0.5;
+        let rcond = shrink_core::lapack::dtrcon_1u(&r.data, 4, 4);
+        assert_eq!(rcond, 0.0028608841315038726);
+        let want = [
+            -50.99859022556391,
+            -59.680451127819545,
+            -27.017543859649127,
+            104.16666666666667,
+        ];
+        assert_eq!(arma_solve_upper(&r, &b).unwrap(), want);
+        assert_eq!(solve_upper(&r, &b), want);
+
+        *r.at_mut(3, 3) = f64::NAN;
+        assert_eq!(
+            arma_solve_upper(&r, &b).unwrap_err(),
+            "solve(): solution not found"
+        );
     }
 }

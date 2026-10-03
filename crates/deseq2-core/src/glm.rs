@@ -386,7 +386,7 @@ fn dgemm(a: &Mat, b: &Mat) -> Mat {
 
 /// R `solve(a)`: `La_solve` with `b = diag(n)`, i.e. LAPACK `dgesv` (`dgetrf`, which is
 /// `dgetrf2` below the block size 64, then `dgetrs`: row interchanges, unit lower and upper
-/// `dtrsm`). The `dgecon` "computationally singular" check R runs afterwards is not ported.
+/// `dtrsm`), then La_solve's `dgecon` check, which stops when the 1-norm rcond is below eps.
 fn r_solve(a: &Mat) -> Result<Mat, String> {
     let n = a.nrow;
     let mut lu = a.clone();
@@ -397,6 +397,8 @@ fn r_solve(a: &Mat) -> Result<Mat, String> {
             "Lapack routine dgesv: system is exactly singular: U[{info},{info}] = 0"
         ));
     }
+
+    check_solve_rcond(a)?;
     let mut b = Mat::zeros(n, n);
     for i in 0..n {
         *b.at_mut(i, i) = 1.0;

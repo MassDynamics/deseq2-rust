@@ -49,6 +49,7 @@ def _control_specs(control_cols) -> list[tuple[str, str]]:
     return [(c["Column"], c["Type"]) for c in control_cols]
 
 
+# _is_int_id and _group_id_order have a twin in edge-rust's edger.py; change both together.
 def _is_int_id(g: str) -> bool:
     """Whether ``type_convert`` would read the GroupId as an integer."""
     return g.isascii() and g.removeprefix("-").isdigit()

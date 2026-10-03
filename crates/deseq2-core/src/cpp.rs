@@ -320,7 +320,7 @@ pub fn fit_beta(
             big[j] = z * w[j].sqrt();
         }
         let gamma = la::tmul_vec(&q, &big);
-        beta = la::solve_upper(&r, &gamma);
+        beta = la::arma_solve_upper(&r, &gamma)?;
         if beta.iter().any(|b| b.abs() > large) {
             iter = ctl.maxit;
             break;
