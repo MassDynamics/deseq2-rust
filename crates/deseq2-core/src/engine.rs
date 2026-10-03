@@ -278,8 +278,10 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     for &g in &kept_idx {
         y.extend_from_slice(&counts[g * m..(g + 1) * m]);
     }
-    // DESeqDataSetFromMatrix stores integer counts: above .Machine$integer.max they turn NA.
-    if y.iter().any(|v| *v > 2147483647.0) {
+    // Production's as.integer(round()) runs on the whole matrix before filterByExpr, so a count
+    // above .Machine$integer.max stops DESeq2 even in a gene filterByExpr drops (review deseq2 r2,
+    // M-2).
+    if counts.iter().any(|v| *v > 2147483647.0) {
         return Err("NA counts not allowed".into());
     }
     let fit = deseq(&y, &design, input.anova)?;
@@ -372,9 +374,10 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         };
         let coef_name = format!("{}_{}_vs_{}", input.condition_col, left, right);
         if !test.coef_names.contains(&coef_name) {
+            // Name the caller's labels, never the encoded tokens (review deseq2 r2, m-6).
             return Err(format!(
-                "DESeq2 results: coefficient '{coef_name}' not found in resultsNames after releveling. Available: {}.",
-                test.coef_names.join(", ")
+                "DESeq2 results: '{}' is not a level of {} (comparison {} - {}).",
+                c.left, input.condition_col, c.left, c.right
             ));
         }
         let coef_k = test.coef_index(&coef_name).unwrap();
@@ -450,12 +453,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
                     &r.se,
                 )
                 .map_err(|e| e.to_string())?;
-                cd.shrink_nonconverged = Some(
-                    a.diag_conv
-                        .iter()
-                        .filter(|&&c| !c.is_nan() && c != 0.0)
-                        .count(),
-                );
+                cd.shrink_nonconverged = Some(count_nonconverged(&a.diag_conv));
                 Some((a.log2_fold_change, a.lfc_se, a.cri_left, a.cri_right))
             }
             _ => None,
@@ -515,4 +513,22 @@ pub fn max_abs_log2fc(lfcs: &[Vec<f64>]) -> (Vec<Option<usize>>, Vec<f64>) {
         }
     }
     (idx, val)
+}
+
+/// apeglm rows whose MAP fit did not converge: `fit$diag[, "conv"]` not 0, NA (rows apeglm
+/// skipped) not counted.
+fn count_nonconverged(conv: &[f64]) -> usize {
+    conv.iter().filter(|&&c| !c.is_nan() && c != 0.0).count()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn nonconverged_rows_are_counted() {
+        // Review deseq2 r2, SE-m6: the end-to-end test only sees 0, which a hardcoded zero passes.
+        assert_eq!(count_nonconverged(&[0.0, 1.0, f64::NAN, -1.0]), 2);
+        assert_eq!(count_nonconverged(&[0.0, f64::NAN]), 0);
+    }
 }

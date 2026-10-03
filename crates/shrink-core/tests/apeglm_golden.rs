@@ -77,10 +77,12 @@ fn apeglm_matches_r() {
         "_shrink_apeglm runs in the corpus (set MD_COUNT_CORPUS_DIR)"
     );
     let mut worst_final: f64 = 0.0;
+    let mut n_cmp = 0;
     for run in &runs {
         let name = run.file_name().unwrap().to_string_lossy().into_owned();
         let sc = scalars(run);
         for cmp in cmps(run, "apeglm") {
+            n_cmp += 1;
             let inp = load(run, &cmp);
             let p = inp.design.ncol;
             let k = |s: &str| sc[format!("{cmp}_apeglm_{s}")].clone();
@@ -367,4 +369,6 @@ fn apeglm_matches_r() {
         }
     }
     println!("worst final gap over all runs: {worst_final:.2e}");
+    // A run that loses its comparison files must not pass quietly (review deseq2 r2, SE-m4).
+    assert_eq!(n_cmp, 11, "apeglm comparisons in the corpus");
 }

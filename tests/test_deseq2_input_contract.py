@@ -91,6 +91,15 @@ def test_count_above_int32_is_refused():
         deseq2_rust.run(c, si, cmp, p)
 
 
+def test_count_above_int32_in_a_filtered_gene_is_refused():
+    """Review deseq2 r2, M-2 (probe d7_dropped_gene): as.integer(round()) runs on the whole matrix
+    before filterByExpr, so a gene filterByExpr drops still stops DESeq2."""
+    c, si, cmp, p = _base()
+    c.iloc[0, :] = [2_147_483_648.0, 0, 0, 0, 0, 0]
+    with pytest.raises(ValueError, match="NA counts not allowed"):
+        deseq2_rust.run(c, si, cmp, p)
+
+
 def test_count_at_int32_max_is_accepted():
     c, si, cmp, p = _base()
     c.iloc[0, :] = 2_147_483_647.0
@@ -132,6 +141,21 @@ def test_near_singular_numeric_control_is_refused(scale, rcond):
     with pytest.raises(
         ValueError, match=f"computationally singular: reciprocal condition number = {rcond}$"
     ):
+        deseq2_rust.run(c, si, cmp, p)
+
+
+@pytest.mark.parametrize("scale,refused", [(5.2405e14, False), (5.2406e14, True)])
+def test_near_singular_boundary_matches_production(scale, refused):
+    """Review deseq2 r2, m-4: production's boundary is s* = 5.24055976686521e14; the port refuses
+    exactly where it does. Just below s* both run but the numbers differ (rcond 2e-16 to 4e-16 is
+    beyond what the port reproduces); a tighter guard would refuse runs production makes."""
+    c, si, cmp, p = _base(ng=300)
+    si["dose"] = np.array([1, 2, 1.3, 1.5, 2.5, 3]) * scale
+    p["control_cols"] = {"Column": "dose", "Type": "numerical"}
+    if refused:
+        with pytest.raises(ValueError, match="reciprocal condition number = 2.22043e-16$"):
+            deseq2_rust.run(c, si, cmp, p)
+    else:
         deseq2_rust.run(c, si, cmp, p)
 
 
@@ -220,14 +244,93 @@ def test_non_ascii_digit_ids_do_not_become_integers():
     assert t["GroupId"].tolist().count("1000") == 1
 
 
-@pytest.mark.parametrize("mode", ["discovery", "anova"])
-def test_rows_are_in_numeric_group_id_order(mode):
-    """Production's final table is in numeric GroupId order: 999 before 1000."""
+def _shuffled_ids(n: int) -> list[str]:
+    """Integer ids in neither numeric nor C-collation order: 999 and 1000 both present."""
+    ids = [str(g) for g in range(990, 990 + n)]
+    return ids[1::2][::-1] + ids[0::2]
+
+
+def test_pairwise_rows_follow_the_input_order():
+    """Review deseq2 r2, m-2 (probes ro_pw_shuf, ro_pw_mdsorted): production's pairwise table is
+    featuresMetadata %>% left_join(stats), in the features metadata order the caller passes."""
     c, si, cmp, p = _base()
-    c.index = [str(g) for g in range(990, 990 + len(c))]
-    t = deseq2_rust.run(c, si, cmp, dict(p, mode=mode))
+    c.index = _shuffled_ids(len(c))
+    t = deseq2_rust.run(c, si, cmp, p)
+    assert [str(g) for g in t["GroupId"]] == list(c.index)
+
+
+def test_anova_rows_are_in_numeric_group_id_order():
+    """Review deseq2 r2, m-2 (probes ro_an_shuf, ro_an_mdrev): runDESeq2ANOVAImpl merges on the
+    integer GroupId, so whatever the input order, 999 comes before 1000."""
+    c, si, cmp, p = _base()
+    c.index = _shuffled_ids(len(c))
+    t = deseq2_rust.run(c, si, cmp, dict(p, mode="anova"))
     ids = [int(g) for g in t["GroupId"]]
     assert ids == sorted(ids)
+
+
+@pytest.mark.parametrize("mode", ["discovery", "anova"])
+def test_non_integer_id_order(mode):
+    """Review deseq2 r2, SE-m5: with a non-integer id pairwise keeps the input order and ANOVA
+    falls back to bytewise order (production cannot run character GroupIds at all)."""
+    c, si, cmp, p = _base(ng=40)
+    c.index = [str(g) for g in range(5 + len(c) - 2, 4, -1)] + ["g"]
+    t = deseq2_rust.run(c, si, cmp, dict(p, mode=mode))
+    want = list(c.index) if mode == "discovery" else sorted(c.index, key=str.encode)
+    assert [str(g) for g in t["GroupId"]] == want
+
+
+def test_double_minus_id_does_not_crash():
+    """Review deseq2 r2 nit: "--5" passed lstrip("-").isdigit() and int("--5") raised."""
+    c, si, cmp, p = _base(ng=40)
+    c.index = ["--5"] + list(c.index[1:])
+    t = deseq2_rust.run(c, si, cmp, p)
+    assert str(t["GroupId"].iloc[0]) == "--5"
+
+
+def test_int_and_string_ids_are_duplicates():
+    """Review deseq2 r2 nit: 1001 and "1001" both become GroupId 1001, so they are one id."""
+    c, si, cmp, p = _base(ng=40)
+    c.index = pd.Index([1001, "1001"] + list(c.index[2:]), dtype=object)
+    with pytest.raises(ValueError, match="duplicate gene ids"):
+        deseq2_rust.run(c, si, cmp, p)
+
+
+@pytest.mark.parametrize(
+    "left,right,msg",
+    [
+        ("Z", "A", "as A is the reference level, was expecting condition_Z_vs_A to be present"),
+        ("B", "Z", "B and Z should be levels of condition such that condition_B_vs_A and"),
+    ],
+)
+def test_anova_comparison_level_must_exist(left, right, msg):
+    """Review deseq2 r2, SE-m2: D-5's second half (checkContrast level existence), ANOVA path."""
+    c, si, p = _three_groups()
+    cmp = pd.DataFrame({"left": [left], "right": [right]})
+    with pytest.raises(ValueError, match=msg):
+        deseq2_rust.run(c, si, cmp, dict(p, mode="anova"))
+
+
+def test_missing_level_message_names_the_label_not_the_token():
+    """Review deseq2 r2, m-6: the message named the encoded token ('condition_D_vs_YJWrq')."""
+    c, si, cmp, p = _base()
+    si["condition"] = si["condition"].map({"A": "YJWrq", "B": "Kp3"})
+    cmp = pd.DataFrame(
+        {"left": ["D"], "right": ["A"], "encoded_left": ["Qx9"], "encoded_right": ["YJWrq"]}
+    )
+    with pytest.raises(ValueError, match="'D' is not a level of condition") as e:
+        deseq2_rust.run(c, si, cmp, p)
+    assert "YJWrq" not in str(e.value) and "Qx9" not in str(e.value)
+
+
+def test_anova_strings_are_r_as_character():
+    """Review deseq2 r2, m-3: .packageANOVAOutput uses as.character, which writes 1e5 as
+    "1e+05" (C's %.15g gives "100000"). Values from R 4.5.0 in the image."""
+    from deseq2_rust.deseq2 import _r_character
+
+    x = [1e5, 110000.0, 1e-4, 0.00012, 1234567890123456.0, -3.161245995276595, np.nan, np.inf]
+    want = ["1e+05", "110000", "1e-04", "0.00012", "1234567890123456", "-3.1612459952766", ""]
+    assert _r_character(x) == want + ["Inf"]
 
 
 @pytest.mark.parametrize("shrink,want", [("apeglm", [0]), ("ashr", [None]), ("none", [None])])

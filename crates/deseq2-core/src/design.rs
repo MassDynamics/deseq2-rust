@@ -254,18 +254,11 @@ pub fn n_groups(x: &Mat) -> usize {
     keys.len()
 }
 
-/// R's `as.character` of a double as `paste0` uses it (15 significant digits).
+/// R's `as.character` of a double as `paste0` uses it: the fewest significant digits (up to 15)
+/// that reproduce the value at 15, fixed or scientific by width (review deseq2 r2, M-1), so 1e5 is
+/// `"1e+05"`, not C's `"100000"`.
 pub fn r_num_string(x: f64) -> String {
-    if x.is_nan() {
-        return "NaN".into();
-    }
-    if x.is_infinite() {
-        return if x > 0.0 { "Inf".into() } else { "-Inf".into() };
-    }
-    if x == 0.0 {
-        return "0".into();
-    }
-    c_fmt_g(x, 15)
+    rnum::rformat::r_as_character(x)
 }
 
 /// C's `%.<sig>g` for a finite non-zero double.
@@ -357,5 +350,18 @@ mod tests {
         assert_eq!(r_num_string(2.5), "2.5");
         assert_eq!(r_num_string(1.0 / 3.0), "0.333333333333333");
         assert_eq!(r_num_string(1e-20), "1e-20");
+        // R 4.5.0: as.character(1e5) is "1e+05" (C's %.15g gives "100000"), 110000 stays fixed.
+        assert_eq!(r_num_string(1e5), "1e+05");
+        assert_eq!(r_num_string(110000.0), "110000");
+        assert_eq!(r_num_string(1e-4), "1e-04");
+        assert_eq!(r_num_string(f64::NAN), "NaN");
+    }
+
+    #[test]
+    fn moment_cells_do_not_collide_on_r_strings() {
+        // Review deseq2 r2, M-1 (probe d9_sep_collision): R pastes (1,0,1,1e5) as "1011e+05" and
+        // (1,0,110000,0) as "101100000"; with %.15g both were "101100000", one Cook's cell.
+        let x = Mat::from_col_major(2, 4, vec![1.0, 1.0, 0.0, 0.0, 1.0, 110000.0, 1e5, 0.0]);
+        assert_eq!(moment_cells(&x), vec![0, 1]);
     }
 }

@@ -16,8 +16,10 @@ fn mixsqp_trace() {
         5,
         "_shrink_ashr runs in the corpus (set MD_COUNT_CORPUS_DIR)"
     );
+    let mut n_cmp = 0;
     for run in runs {
         for cmp in cmps(&run, "ashr") {
+            n_cmp += 1;
             let p = |s: &str| run.join(format!("{cmp}_ashr_{s}.csv"));
             let data = Table::read(&p("data"));
             let fit = ash_shrink(&data.f("x"), &data.f("s")).unwrap();
@@ -61,6 +63,8 @@ fn mixsqp_trace() {
             assert!(((s0.gmin - gmin[0]) / gmin[0]).abs() <= 1e-8);
         }
     }
+    // A run that loses its comparison files must not pass quietly (review deseq2 r2, SE-m4).
+    assert_eq!(n_cmp, 11, "ashr comparisons in the corpus");
 }
 
 #[test]

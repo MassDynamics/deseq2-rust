@@ -82,12 +82,17 @@ def test_table_matches_reference_output(run):
     )
     assert list(got.columns) == list(want.columns)
     assert len(got) == len(want)
-    # The reference CSVs are in C-collation order; production's final table (results.rds) and
-    # the port are in numeric GroupId order.
-    gid = got["GroupId"].astype(int).to_numpy()
-    assert (np.diff(gid) > 0).all(), "rows not in numeric GroupId order"
-    want = want.iloc[np.argsort(want["GroupId"].astype(int).to_numpy(), kind="stable")]
-    want = want.reset_index(drop=True)
+    # The reference CSVs are in C-collation order. Pairwise rows follow the input (features
+    # metadata) order; DESeq2 ANOVA rows are in numeric GroupId order.
+    if anova:
+        gid = got["GroupId"].astype(int).to_numpy()
+        assert (np.diff(gid) > 0).all(), "rows not in numeric GroupId order"
+        key = want["GroupId"].astype(int).to_numpy()
+    else:
+        assert [str(g) for g in got["GroupId"]] == [str(g) for g in counts.index]
+        pos = {str(g): i for i, g in enumerate(counts.index)}
+        key = [pos[str(g)] for g in want["GroupId"]]
+    want = want.iloc[np.argsort(key, kind="stable")].reset_index(drop=True)
     if anova:
         want = want.fillna("")
         assert list(got["GroupId"]) == list(want["GroupId"])

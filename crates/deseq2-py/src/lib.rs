@@ -35,6 +35,15 @@ fn _selftest_panic(py: Python<'_>) -> PyResult<()> {
     guarded(py, || -> Result<(), String> { panic!("selftest panic") })
 }
 
+/// R's `as.character` of each double, for the ANOVA string columns (review deseq2 r2, m-3).
+#[pyfunction]
+fn r_as_character(values: Vec<f64>) -> Vec<String> {
+    values
+        .into_iter()
+        .map(rnum::rformat::r_as_character)
+        .collect()
+}
+
 fn vector<'py>(py: Python<'py>, data: Vec<f64>) -> Bound<'py, PyAny> {
     Array1::from_vec(data).into_pyarray(py).into_any()
 }
@@ -200,5 +209,6 @@ fn deseq2_pipeline<'py>(
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(deseq2_pipeline, m)?)?;
     m.add_function(wrap_pyfunction!(_selftest_panic, m)?)?;
+    m.add_function(wrap_pyfunction!(r_as_character, m)?)?;
     Ok(())
 }
