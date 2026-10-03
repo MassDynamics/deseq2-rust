@@ -35,6 +35,11 @@ the `rev` here and re-run the gate.
   one returns a table and the other refuses. No probe has hit it.
 - **Near-singular steps above 25 coefficients.** Production approximates such an IRLS step and
   carries on; the port refuses the run, because only the small `dgelsd` branch is ported.
+- **Band dispatch at 32 or more coefficients.** Armadillo's `solve()` checks for a band matrix
+  before it checks for a triangular one once the system has 32 or more columns, so an IRLS `R`
+  factor with exact zeros at the top of its last columns would take Armadillo's band solver in
+  production. The port always takes the triangular path. A QR `R` factor of a real design is
+  unlikely to have that structure, and designs this wide are not expected in production.
 - **Float-noise covariates.** A numeric control holding values that differ only in the last bits
   (for example `1.000000000000001` next to `1.0`) can move a gene's statistic by about 1e-7
   relative, because the cell grouping and the fit see those values exactly.
