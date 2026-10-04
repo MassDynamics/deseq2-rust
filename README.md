@@ -23,7 +23,7 @@ assumed, not checked, to match native x86-64 production.
 ## The edge-rust pin
 
 The `rnum` and `edger-core` crates come from edge-rust through a git dependency in `Cargo.toml`,
-pinned to a full commit SHA (the edge-rust release `v0.1.0-4`) over https. To take an edge-rust
+pinned to a full commit SHA (the edge-rust release `v0.1.0-7`) over https. To take an edge-rust
 change, commit it there, bump the `rev` here and re-run the gate.
 
 ## Known limits
