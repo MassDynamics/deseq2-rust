@@ -18,6 +18,7 @@ import pandas as pd
 import pytest
 
 CORPUS = Path(os.environ.get("MD_COUNT_CORPUS_DIR", Path.home() / "wd/md-count-golden-corpus"))
+SMALL_TIER = CORPUS.resolve() == (Path(__file__).parent / "corpus-small").resolve()
 RUNS = sorted(
     p.name
     for p in (CORPUS / "reference").glob("*deseq2*")
@@ -45,6 +46,13 @@ def inputs(run: str):
     m = manifest(run)
     params = dict(m["params"], entity_type=m["entity_type"], mode=m["mode"])
     return counts, si, cmp, params
+
+
+def airway_ctlnone_inputs():
+    """count_deseq2_airway_all_ctlnone's inputs: the ctlfactor run's without the cell column (the
+    counts and comparisons are identical), so the small tier needs one airway run."""
+    counts, si, cmp, params = inputs("count_deseq2_airway_all_ctlfactor")
+    return counts, si.drop(columns="cell"), cmp, dict(params, control_cols=None)
 
 
 def num(s: pd.Series) -> np.ndarray:
@@ -113,7 +121,8 @@ ERROR_RUNS = [r for r in RUNS if manifest(r)["status"] == "error"]
 
 def test_corpus_is_complete():
     """A shrunken corpus must not pass quietly (review r1, D-11)."""
-    assert len(TABLE_RUNS) == 35, f"{len(TABLE_RUNS)} table runs, expected 35"
+    want = 8 if SMALL_TIER else 35  # scripts/build_small_corpus.py for the small tier
+    assert len(TABLE_RUNS) == want, f"{len(TABLE_RUNS)} table runs, expected {want}"
     assert len(ERROR_RUNS) == 4, f"{len(ERROR_RUNS)} error runs, expected 4"
 
 
@@ -122,7 +131,7 @@ def test_expected_error(run):
     expected = manifest(run)["expected_error"]
     if run == "edge_deseq2_non_integer":
         # Fails in prepare_inputs before inputs are dumped: rebuild it from an ordinary run.
-        counts, si, cmp, params = inputs("count_deseq2_airway_all_ctlnone")
+        counts, si, cmp, params = airway_ctlnone_inputs()
         counts = counts.astype(float)
         counts.iloc[0, 0] += 0.5
     else:
@@ -159,7 +168,7 @@ def test_diagnostics_are_consistent_with_the_table():
 )
 def test_empty_sample_errors_like_production(gene2, expected):
     # Messages from runDiscovery(de_method = "DESeq2") in md-flexi-r45-local on these inputs.
-    counts, si, cmp, params = inputs("count_deseq2_airway_all_ctlnone")
+    counts, si, cmp, params = airway_ctlnone_inputs()
     s1 = counts.columns[0]
     counts[s1] = 0
     counts.loc["2", s1] = gene2
@@ -168,6 +177,6 @@ def test_empty_sample_errors_like_production(gene2, expected):
 
 
 def test_invalid_shrinkage_is_refused():
-    counts, si, cmp, params = inputs("count_deseq2_airway_all_ctlnone")
+    counts, si, cmp, params = airway_ctlnone_inputs()
     with pytest.raises(ValueError, match="Invalid deseq2_lfc_shrinkage value: 'bogus'"):
         deseq2_rust.run(counts, si, cmp, dict(params, deseq2_lfc_shrinkage="bogus"))

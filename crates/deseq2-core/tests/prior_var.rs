@@ -1,6 +1,7 @@
 //! Step 1 gate: the m - p <= 3 prior variance simulation (R RNG, hist, loess) reproduces
-//! every `deseq2_prior_var_*` golden on the six airway ctlfactor runs. Residuals come from
-//! the `deseq2_disp.csv` stage golden so this test isolates the simulation.
+//! every `deseq2_prior_var_*` golden on the six airway ctlfactor runs (the first only, on the
+//! small tier). Residuals come from the `deseq2_disp.csv` stage golden so this test isolates the
+//! simulation.
 
 mod common;
 use common::*;
@@ -94,7 +95,12 @@ fn check_run(run: &str, df: f64) {
 
 #[test]
 fn prior_var_simulation_matches_goldens() {
-    for run in RUNS {
+    let runs = if is_small_tier() {
+        &RUNS[..1]
+    } else {
+        &RUNS[..]
+    };
+    for &run in runs {
         // df = m - p: samples minus coefficients (one SE_ column per coefficient).
         let dir = reference_dir(run);
         let m = Table::read(&dir.join("input_sample_info.csv")).nrow;

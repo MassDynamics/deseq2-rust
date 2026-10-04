@@ -13,6 +13,15 @@ pub fn corpus_dir() -> PathBuf {
     PathBuf::from(home).join("wd/md-count-golden-corpus")
 }
 
+/// Whether the corpus is the committed CI tier (`scripts/build_small_corpus.py`).
+pub fn is_small_tier() -> bool {
+    let small = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus-small");
+    match (corpus_dir().canonicalize(), small.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => false,
+    }
+}
+
 pub fn shrink_dir() -> Option<PathBuf> {
     let d = corpus_dir().join("reference-shrink");
     if d.is_dir() {
@@ -54,8 +63,9 @@ pub fn cmps(run: &PathBuf, kind: &str) -> Vec<String> {
 /// What `reference-shrink/index.json` lists for runs whose id contains `pattern`: the run ids,
 /// and the `(run id, comparison tag)` pairs that have a `kind` final table. The tests compare
 /// both sets with what they walked on disk, so a run or comparison file that goes missing fails,
-/// and the floors (5 runs, 11 comparisons, the corpus as of review deseq2 r3) stop a coordinated
-/// removal from the index and the disk passing quietly (review overnight r1, SE-m3 and SE-n1).
+/// and the floors (5 runs, 11 comparisons, the corpus as of review deseq2 r3; the small tier
+/// holds exactly 1 and 3) stop a coordinated removal from the index and the disk passing quietly
+/// (review overnight r1, SE-m3 and SE-n1).
 pub struct Index {
     pub runs: BTreeSet<String>,
     pub cmps: BTreeSet<(String, String)>,
@@ -82,12 +92,21 @@ pub fn index(pattern: &str, kind: &str) -> Index {
             }
         }
     }
-    assert!(
-        idx.runs.len() >= 5 && idx.cmps.len() >= 11,
-        "index.json lists {} {pattern} runs and {} {kind} comparisons, below the floor of 5 and 11",
-        idx.runs.len(),
-        idx.cmps.len()
-    );
+    if is_small_tier() {
+        assert!(
+            idx.runs.len() == 1 && idx.cmps.len() == 3,
+            "small tier index.json lists {} {pattern} runs and {} {kind} comparisons, not 1 and 3",
+            idx.runs.len(),
+            idx.cmps.len()
+        );
+    } else {
+        assert!(
+            idx.runs.len() >= 5 && idx.cmps.len() >= 11,
+            "index.json lists {} {pattern} runs and {} {kind} comparisons, below the floor of 5 and 11",
+            idx.runs.len(),
+            idx.cmps.len()
+        );
+    }
     idx
 }
 

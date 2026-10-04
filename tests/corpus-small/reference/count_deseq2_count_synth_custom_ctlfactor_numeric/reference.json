@@ -1,0 +1,1012 @@
+{
+  "run_id": "count_deseq2_count_synth_custom_ctlfactor_numeric",
+  "de_method": "DESeq2",
+  "mode": "discovery",
+  "self_check": {
+    "passed": true,
+    "columns_compared": ["Log2FC doseA - ctrl", "stat doseA - ctrl", "SE doseA - ctrl", "CILeft doseA - ctrl", "CIRight doseA - ctrl", "CrILeft doseA - ctrl", "CrIRight doseA - ctrl", "PValue doseA - ctrl", "AdjPValue doseA - ctrl", "Log2FC doseB - ctrl", "stat doseB - ctrl", "SE doseB - ctrl", "CILeft doseB - ctrl", "CIRight doseB - ctrl", "CrILeft doseB - ctrl", "CrIRight doseB - ctrl", "PValue doseB - ctrl", "AdjPValue doseB - ctrl", "Log2FC doseB - doseA", "stat doseB - doseA", "SE doseB - doseA", "CILeft doseB - doseA", "CIRight doseB - doseA", "CrILeft doseB - doseA", "CrIRight doseB - doseA", "PValue doseB - doseA", "AdjPValue doseB - doseA", "AveExpr"],
+    "detail": {
+      "Log2FC doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "stat doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "SE doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CILeft doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CIRight doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrILeft doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrIRight doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "PValue doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "AdjPValue doseA - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "Log2FC doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "stat doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "SE doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CILeft doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CIRight doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrILeft doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrIRight doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "PValue doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "AdjPValue doseB - ctrl": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "Log2FC doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "stat doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "SE doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CILeft doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CIRight doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrILeft doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrIRight doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "PValue doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "AdjPValue doseB - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "AveExpr": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      }
+    },
+    "max_rel": 0,
+    "kind": "table",
+    "e2e_columns_not_compared": ["GeneNames", "Description", "NImputed: ctrl", "NImputed: doseA", "NImputed: doseB", "NReplicates: ctrl", "NReplicates: doseA", "NReplicates: doseB", "GroupLabel", "GroupLabelType"]
+  },
+  "internal_checks_pass": true,
+  "internal_checks": {
+    "filter_keep": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 2000
+    },
+    "deseq2_size_factors": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 12
+    },
+    "deseq2_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_baseVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_allZero": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_dispFit": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_varLogDispEsts": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_dispPriorVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_dispOutlier": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_dispersion": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldStatistic_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldPvalue_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldStatistic_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldPvalue_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldStatistic_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldPvalue_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldStatistic_batch_b2_vs_b1": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldPvalue_batch_b2_vs_b1": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldStatistic_rin": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_WaldPvalue_rin": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_fit_initial_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 21780
+    },
+    "deseq2_fit_initial_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_sizeFactors": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 12
+    },
+    "deseq2_vs_DESeq_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_baseVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_allZero": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_dispGeneEst": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_dispGeneIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_dispFit": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_dispersion": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_dispIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_dispOutlier": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_dispMAP": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_batch_b2_vs_b1": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_rin": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_SE_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_SE_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_SE_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_SE_batch_b2_vs_b1": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_SE_rin": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldStatistic_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldStatistic_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldStatistic_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldStatistic_batch_b2_vs_b1": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldStatistic_rin": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldPvalue_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldPvalue_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldPvalue_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldPvalue_batch_b2_vs_b1": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_WaldPvalue_rin": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_betaConv": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_betaIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_deviance": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_vs_DESeq_assay_counts": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 21780
+    },
+    "deseq2_vs_DESeq_assay_mu": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 21780
+    },
+    "deseq2_vs_DESeq_assay_H": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 21780
+    },
+    "deseq2_vs_DESeq_assay_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 21780
+    },
+    "deseq2_vs_DESeq_dispPriorVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_aveExpr": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_01_filter_threshold": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_01_filter_theta": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_01_filter_theta_grid": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_01_filter_numRej": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_01_filter_lowess_y": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_01_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_01_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_01_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_01_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_01_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_01_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_02_filter_threshold": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_02_filter_theta": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_02_filter_theta_grid": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_02_filter_numRej": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_02_filter_lowess_y": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_02_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_02_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_02_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_02_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_02_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_02_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldStatistic_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldPvalue_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldStatistic_condition_VvbFo_vs_YJWrq": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldPvalue_condition_VvbFo_vs_YJWrq": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldStatistic_condition_bdcYa_vs_YJWrq": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldPvalue_condition_bdcYa_vs_YJWrq": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldStatistic_batch_b2_vs_b1": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldPvalue_batch_b2_vs_b1": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldStatistic_rin": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_WaldPvalue_rin": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_relevel_fit_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 21780
+    },
+    "deseq2_cmp_03_relevel_fit_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_filter_threshold": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_03_filter_theta": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_03_filter_theta_grid": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_03_filter_numRej": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_03_filter_lowess_y": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_03_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    },
+    "deseq2_cmp_03_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1815
+    }
+  },
+  "scalars": {
+    "condition_levels": ["VvbFo", "YJWrq", "bdcYa"],
+    "filter_min_sample_size": 1.59278466741826,
+    "filter_cpm_cutoff": 11.1237179915015,
+    "deseq2_linear_mu": false,
+    "deseq2_fit_type": "parametric",
+    "deseq2_trend_coefficients": [0.0385759852729479, 2.46296633715386],
+    "deseq2_varLogDispEsts": 0.409323121737765,
+    "deseq2_prior_var_rng_path": false,
+    "deseq2_dispPriorVar": 0.25,
+    "deseq2_any_replaceable": false,
+    "deseq2_cmp_01_relevel_refit": false,
+    "deseq2_cmp_01_path": "coef",
+    "deseq2_cmp_01_cooks_cutoff": 7.46043549298926,
+    "deseq2_cmp_01_filter_j": 1,
+    "deseq2_cmp_01_filter_threshold": 4.00305477299948,
+    "deseq2_cmp_01_filter_theta": 0,
+    "deseq2_cmp_02_relevel_refit": false,
+    "deseq2_cmp_02_path": "coef",
+    "deseq2_cmp_02_cooks_cutoff": 7.46043549298926,
+    "deseq2_cmp_02_filter_j": 1,
+    "deseq2_cmp_02_filter_threshold": 4.00305477299948,
+    "deseq2_cmp_02_filter_theta": 0,
+    "deseq2_cmp_03_relevel_refit": true,
+    "deseq2_cmp_03_path": "coef",
+    "deseq2_cmp_03_cooks_cutoff": 7.46043549298926,
+    "deseq2_cmp_03_filter_j": 1,
+    "deseq2_cmp_03_filter_threshold": 4.00305477299948,
+    "deseq2_cmp_03_filter_theta": 0
+  },
+  "provenance": {
+    "md_limma_sha": "b3b8abc30ba3134514f34672dd0cd7d62074bb2b",
+    "reference_sha256": "ab755d6b46af5976cd482dc96a418efd44841ab9a16fd5f43ae6e594b3ebdd14",
+    "corpus_harness_sha256": "900715efed8794c10ef44d9a31f3ae95f2491fd8941c0fabaf794fc4a010dab2",
+    "md_flexi_comparisons_sha": "e56546c8bb1cca5e2674d74e79efa1fd83b8bce8",
+    "image_digest": "sha256:1ac4c785e9779f64d1331de9cbaae9b5cbc9a56f55c2b42624ac8d2aed9df482"
+  },
+  "versions": {
+    "R": "R version 4.5.0 (2025-04-11)",
+    "edgeR": "4.8.2",
+    "DESeq2": "1.50.2",
+    "limma": "3.66.0"
+  }
+}

@@ -12,8 +12,6 @@ steps:
   - label: ":rust: test"
     key: test
     command: scripts/test
-    env:
-      CORPUS_S3: "s3://md-development-benchmarking/md-limma-benchmark/md-count-golden-corpus/md-count-golden-corpus-2026-10-04.tar"
     agents:
       ebdeploy: true
 

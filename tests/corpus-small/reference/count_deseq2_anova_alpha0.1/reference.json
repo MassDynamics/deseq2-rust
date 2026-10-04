@@ -1,0 +1,589 @@
+{
+  "run_id": "count_deseq2_anova_alpha0.1",
+  "de_method": "DESeq2",
+  "mode": "anova",
+  "self_check": {
+    "passed": true,
+    "columns_compared": ["AveExpr", "PValue", "AdjPValue", "LRT", "MaxLog2FCPair", "MaxLog2FC"],
+    "detail": {
+      "AveExpr": {
+        "pass": true,
+        "kind": "string"
+      },
+      "PValue": {
+        "pass": true,
+        "kind": "string"
+      },
+      "AdjPValue": {
+        "pass": true,
+        "kind": "string"
+      },
+      "LRT": {
+        "pass": true,
+        "kind": "string"
+      },
+      "MaxLog2FCPair": {
+        "pass": true,
+        "kind": "string"
+      },
+      "MaxLog2FC": {
+        "pass": true,
+        "kind": "string"
+      }
+    },
+    "max_rel": 0,
+    "kind": "table",
+    "e2e_columns_not_compared": ["GroupLabel", "GroupLabelType", "GeneNames", "Description"]
+  },
+  "internal_checks_pass": true,
+  "internal_checks": {
+    "filter_keep": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 2000
+    },
+    "deseq2_size_factors": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 12
+    },
+    "deseq2_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_baseVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_allZero": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_dispFit": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_varLogDispEsts": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_dispPriorVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_dispOutlier": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_dispersion": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_LRTPvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_fit_initial_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_sizeFactors": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 12
+    },
+    "deseq2_vs_DESeq_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_baseVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_allZero": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispGeneEst": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispGeneIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispFit": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispersion": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispOutlier": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispMAP": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_SE_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_SE_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_SE_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_LRTStatistic": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_LRTPvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_fullBetaConv": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_reducedBetaConv": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_betaIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_deviance": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_assay_counts": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_vs_DESeq_assay_mu": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_vs_DESeq_assay_H": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_vs_DESeq_assay_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_vs_DESeq_dispPriorVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_aveExpr": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_01_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_01_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_01_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_01_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_01_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_01_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_02_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_02_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_02_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_02_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_02_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_02_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_03_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_03_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_03_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_03_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_03_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_03_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_lfc_03_lfc_plain": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_omnibus_filter_threshold": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_anova_omnibus_filter_theta": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_anova_omnibus_filter_theta_grid": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_anova_omnibus_filter_numRej": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_anova_omnibus_filter_lowess_y": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_anova_omnibus_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_omnibus_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_omnibus_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_omnibus_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_omnibus_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_anova_omnibus_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    }
+  },
+  "scalars": {
+    "condition_levels": ["VvbFo", "YJWrq", "bdcYa"],
+    "filter_min_sample_size": 4,
+    "filter_cpm_cutoff": 11.1237179915015,
+    "deseq2_linear_mu": true,
+    "deseq2_fit_type": "parametric",
+    "deseq2_trend_coefficients": [0.0427317370273138, 2.17640833995498],
+    "deseq2_varLogDispEsts": 0.351862337306752,
+    "deseq2_prior_var_rng_path": false,
+    "deseq2_dispPriorVar": 0.25,
+    "deseq2_fit_initial_lrt_df": 2,
+    "deseq2_any_replaceable": false,
+    "deseq2_anova_lfc_01_path": "negated_coef",
+    "deseq2_anova_lfc_01_cooks_cutoff": 6.99191722223346,
+    "deseq2_anova_lfc_02_path": "negated_coef",
+    "deseq2_anova_lfc_02_cooks_cutoff": 6.99191722223346,
+    "deseq2_anova_lfc_03_path": "contrast",
+    "deseq2_anova_lfc_03_cooks_cutoff": 6.99191722223346,
+    "deseq2_anova_omnibus_path": "coef",
+    "deseq2_anova_omnibus_cooks_cutoff": 6.99191722223346,
+    "deseq2_anova_omnibus_filter_j": 1,
+    "deseq2_anova_omnibus_filter_threshold": 6.56145246147795,
+    "deseq2_anova_omnibus_filter_theta": 0
+  },
+  "provenance": {
+    "md_limma_sha": "b3b8abc30ba3134514f34672dd0cd7d62074bb2b",
+    "reference_sha256": "ab755d6b46af5976cd482dc96a418efd44841ab9a16fd5f43ae6e594b3ebdd14",
+    "corpus_harness_sha256": "900715efed8794c10ef44d9a31f3ae95f2491fd8941c0fabaf794fc4a010dab2",
+    "md_flexi_comparisons_sha": "e56546c8bb1cca5e2674d74e79efa1fd83b8bce8",
+    "image_digest": "sha256:1ac4c785e9779f64d1331de9cbaae9b5cbc9a56f55c2b42624ac8d2aed9df482"
+  },
+  "versions": {
+    "R": "R version 4.5.0 (2025-04-11)",
+    "edgeR": "4.8.2",
+    "DESeq2": "1.50.2",
+    "limma": "3.66.0"
+  }
+}

@@ -1,0 +1,1426 @@
+{
+  "run_id": "count_deseq2_count_synth_shrink_apeglm",
+  "de_method": "DESeq2",
+  "mode": "discovery",
+  "self_check": {
+    "passed": true,
+    "columns_compared": ["Log2FC ctrl - doseA", "stat ctrl - doseA", "SE ctrl - doseA", "CILeft ctrl - doseA", "CIRight ctrl - doseA", "CrILeft ctrl - doseA", "CrIRight ctrl - doseA", "PValue ctrl - doseA", "AdjPValue ctrl - doseA", "Log2FC ctrl - doseB", "stat ctrl - doseB", "SE ctrl - doseB", "CILeft ctrl - doseB", "CIRight ctrl - doseB", "CrILeft ctrl - doseB", "CrIRight ctrl - doseB", "PValue ctrl - doseB", "AdjPValue ctrl - doseB", "Log2FC doseA - doseB", "stat doseA - doseB", "SE doseA - doseB", "CILeft doseA - doseB", "CIRight doseA - doseB", "CrILeft doseA - doseB", "CrIRight doseA - doseB", "PValue doseA - doseB", "AdjPValue doseA - doseB", "AveExpr"],
+    "detail": {
+      "Log2FC ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "stat ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "SE ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CILeft ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CIRight ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrILeft ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrIRight ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "PValue ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "AdjPValue ctrl - doseA": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "Log2FC ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "stat ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "SE ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CILeft ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CIRight ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrILeft ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrIRight ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "PValue ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "AdjPValue ctrl - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "Log2FC doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "stat doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "SE doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CILeft doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CIRight doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrILeft doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "CrIRight doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "PValue doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "AdjPValue doseA - doseB": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      },
+      "AveExpr": {
+        "pass": true,
+        "identical": true,
+        "max_rel": 0,
+        "na_mismatch": 0,
+        "n": 2000
+      }
+    },
+    "max_rel": 0,
+    "kind": "table",
+    "e2e_columns_not_compared": ["GeneNames", "Description", "NImputed: ctrl", "NImputed: doseA", "NImputed: doseB", "NReplicates: ctrl", "NReplicates: doseA", "NReplicates: doseB", "GroupLabel", "GroupLabelType"]
+  },
+  "internal_checks_pass": true,
+  "internal_checks": {
+    "filter_keep": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 2000
+    },
+    "deseq2_size_factors": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 12
+    },
+    "deseq2_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_baseVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_allZero": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_dispFit": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_varLogDispEsts": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_dispPriorVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_dispOutlier": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_dispersion": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_WaldStatistic_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_WaldPvalue_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_WaldStatistic_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_WaldPvalue_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_WaldStatistic_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_WaldPvalue_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_fit_initial_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_fit_initial_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_sizeFactors": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 12
+    },
+    "deseq2_vs_DESeq_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_baseVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_allZero": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispGeneEst": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispGeneIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispFit": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispersion": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispOutlier": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_dispMAP": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_SE_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_SE_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_SE_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_WaldStatistic_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_WaldStatistic_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_WaldStatistic_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_WaldPvalue_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_WaldPvalue_condition_YJWrq_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_WaldPvalue_condition_bdcYa_vs_VvbFo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_betaConv": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_betaIter": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_deviance": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_vs_DESeq_assay_counts": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_vs_DESeq_assay_mu": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_vs_DESeq_assay_H": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_vs_DESeq_assay_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_vs_DESeq_dispPriorVar": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_aveExpr": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_relevel_fit_WaldStatistic_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_relevel_fit_WaldPvalue_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_relevel_fit_WaldStatistic_condition_VvbFo_vs_YJWrq": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_relevel_fit_WaldPvalue_condition_VvbFo_vs_YJWrq": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_relevel_fit_WaldStatistic_condition_bdcYa_vs_YJWrq": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_relevel_fit_WaldPvalue_condition_bdcYa_vs_YJWrq": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_relevel_fit_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_cmp_01_relevel_fit_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_filter_threshold": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_01_filter_theta": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_01_filter_theta_grid": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_01_filter_numRej": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_01_filter_lowess_y": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_01_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_01_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_relevel_fit_WaldStatistic_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_relevel_fit_WaldPvalue_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_relevel_fit_WaldStatistic_condition_VvbFo_vs_bdcYa": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_relevel_fit_WaldPvalue_condition_VvbFo_vs_bdcYa": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_relevel_fit_WaldStatistic_condition_YJWrq_vs_bdcYa": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_relevel_fit_WaldPvalue_condition_YJWrq_vs_bdcYa": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_relevel_fit_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_cmp_02_relevel_fit_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_filter_threshold": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_02_filter_theta": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_02_filter_theta_grid": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_02_filter_numRej": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_02_filter_lowess_y": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_02_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_02_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_relevel_fit_WaldStatistic_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_relevel_fit_WaldPvalue_Intercept": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_relevel_fit_WaldStatistic_condition_VvbFo_vs_bdcYa": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_relevel_fit_WaldPvalue_condition_VvbFo_vs_bdcYa": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_relevel_fit_WaldStatistic_condition_YJWrq_vs_bdcYa": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_relevel_fit_WaldPvalue_condition_YJWrq_vs_bdcYa": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_relevel_fit_cooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 20880
+    },
+    "deseq2_cmp_03_relevel_fit_maxCooks": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_filter_threshold": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_03_filter_theta": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "deseq2_cmp_03_filter_theta_grid": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_03_filter_numRej": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_03_filter_lowess_y": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 50
+    },
+    "deseq2_cmp_03_baseMean": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_log2FoldChange": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_lfcSE": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_stat": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_pvalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "deseq2_cmp_03_padj": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_prior_var": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_01_apeglm_prior_var_pkg": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_01_apeglm_prior_scale": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_01_apeglm_trace_fit1_betas": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_01_apeglm_trace_fit1_value": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_trace_fit2_betas": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_01_apeglm_trace_fit2_value": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_map": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_01_apeglm_sd": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_01_apeglm_interval_lo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_interval_hi": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_fsr": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_svalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_diag_conv": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_diag_count": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_lfcShrink_lfc": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_01_apeglm_lfcShrink_se": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_prior_var": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_02_apeglm_prior_var_pkg": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_02_apeglm_prior_scale": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_02_apeglm_trace_fit1_betas": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_02_apeglm_trace_fit1_value": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_trace_fit2_betas": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_02_apeglm_trace_fit2_value": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_map": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_02_apeglm_sd": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_02_apeglm_interval_lo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_interval_hi": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_fsr": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_svalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_diag_conv": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_diag_count": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_lfcShrink_lfc": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_02_apeglm_lfcShrink_se": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_prior_var": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_03_apeglm_prior_var_pkg": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_03_apeglm_prior_scale": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1
+    },
+    "shrink_cmp_03_apeglm_trace_fit1_betas": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_03_apeglm_trace_fit1_value": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_trace_fit2_betas": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_03_apeglm_trace_fit2_value": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_map": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_03_apeglm_sd": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 5220
+    },
+    "shrink_cmp_03_apeglm_interval_lo": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_interval_hi": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_fsr": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_svalue": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_diag_conv": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_diag_count": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_lfcShrink_lfc": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    },
+    "shrink_cmp_03_apeglm_lfcShrink_se": {
+      "pass": true,
+      "identical": true,
+      "max_rel": 0,
+      "na_mismatch": 0,
+      "n": 1740
+    }
+  },
+  "scalars": {
+    "condition_levels": ["VvbFo", "YJWrq", "bdcYa"],
+    "filter_min_sample_size": 4,
+    "filter_cpm_cutoff": 11.1237179915015,
+    "deseq2_linear_mu": true,
+    "deseq2_fit_type": "parametric",
+    "deseq2_trend_coefficients": [0.0427317370273138, 2.17640833995498],
+    "deseq2_varLogDispEsts": 0.351862337306752,
+    "deseq2_prior_var_rng_path": false,
+    "deseq2_dispPriorVar": 0.25,
+    "deseq2_any_replaceable": false,
+    "deseq2_cmp_01_relevel_refit": true,
+    "deseq2_cmp_01_path": "coef",
+    "deseq2_cmp_01_cooks_cutoff": 6.99191722223346,
+    "deseq2_cmp_01_filter_j": 1,
+    "deseq2_cmp_01_filter_threshold": 6.56145246147795,
+    "deseq2_cmp_01_filter_theta": 0,
+    "deseq2_cmp_02_relevel_refit": true,
+    "deseq2_cmp_02_path": "coef",
+    "deseq2_cmp_02_cooks_cutoff": 6.99191722223346,
+    "deseq2_cmp_02_filter_j": 1,
+    "deseq2_cmp_02_filter_threshold": 6.56145246147795,
+    "deseq2_cmp_02_filter_theta": 0,
+    "deseq2_cmp_03_relevel_refit": true,
+    "deseq2_cmp_03_path": "coef",
+    "deseq2_cmp_03_cooks_cutoff": 6.99191722223346,
+    "deseq2_cmp_03_filter_j": 1,
+    "deseq2_cmp_03_filter_threshold": 6.56145246147795,
+    "deseq2_cmp_03_filter_theta": 0,
+    "shrink_type": "apeglm",
+    "shrink_apeglm_seed": 1,
+    "shrink_cmp_01_coef_index": 2,
+    "shrink_cmp_01_coef_name": "condition_VvbFo_vs_YJWrq",
+    "shrink_cmp_01_label": "ctrl - doseA",
+    "shrink_cmp_01_design_colnames": ["(Intercept)", "conditionVvbFo", "conditionbdcYa"],
+    "shrink_cmp_01_apeglm_prior_var": 0.102627895932705,
+    "shrink_cmp_01_apeglm_prior_scale": 0.320355889492772,
+    "shrink_cmp_01_apeglm_prior_objective_at_min": 0.106487184554452,
+    "shrink_cmp_01_apeglm_uniroot": {
+      "iter": 4,
+      "estim_prec": 6.10351562500416e-05,
+      "f_root": -1.64497844040712e-07
+    },
+    "shrink_cmp_01_apeglm_mle_kept": 1740,
+    "shrink_cmp_01_apeglm_no_shrink": [1, 3],
+    "shrink_cmp_01_apeglm_n_fallback": 7,
+    "shrink_cmp_01_apeglm_n_conv_flagged": 7,
+    "shrink_cmp_01_apeglm_n_nan_prefit": 0,
+    "shrink_cmp_02_coef_index": 2,
+    "shrink_cmp_02_coef_name": "condition_VvbFo_vs_bdcYa",
+    "shrink_cmp_02_label": "ctrl - doseB",
+    "shrink_cmp_02_design_colnames": ["(Intercept)", "conditionVvbFo", "conditionYJWrq"],
+    "shrink_cmp_02_apeglm_prior_var": 0.0953751464369262,
+    "shrink_cmp_02_apeglm_prior_scale": 0.308828668418148,
+    "shrink_cmp_02_apeglm_prior_objective_at_min": 0.0904626044263189,
+    "shrink_cmp_02_apeglm_uniroot": {
+      "iter": 3,
+      "estim_prec": 7.03769600066961e-05,
+      "f_root": 6.81876864000452e-08
+    },
+    "shrink_cmp_02_apeglm_mle_kept": 1740,
+    "shrink_cmp_02_apeglm_no_shrink": [1, 3],
+    "shrink_cmp_02_apeglm_n_fallback": 8,
+    "shrink_cmp_02_apeglm_n_conv_flagged": 8,
+    "shrink_cmp_02_apeglm_n_nan_prefit": 0,
+    "shrink_cmp_03_coef_index": 3,
+    "shrink_cmp_03_coef_name": "condition_YJWrq_vs_bdcYa",
+    "shrink_cmp_03_label": "doseA - doseB",
+    "shrink_cmp_03_design_colnames": ["(Intercept)", "conditionVvbFo", "conditionYJWrq"],
+    "shrink_cmp_03_apeglm_prior_var": 0.212729641374489,
+    "shrink_cmp_03_apeglm_prior_scale": 0.461226236650181,
+    "shrink_cmp_03_apeglm_prior_objective_at_min": 0.183297955346591,
+    "shrink_cmp_03_apeglm_uniroot": {
+      "iter": 4,
+      "estim_prec": 6.10351562500833e-05,
+      "f_root": 1.52612596152346e-05
+    },
+    "shrink_cmp_03_apeglm_mle_kept": 1740,
+    "shrink_cmp_03_apeglm_no_shrink": [1, 2],
+    "shrink_cmp_03_apeglm_n_fallback": 18,
+    "shrink_cmp_03_apeglm_n_conv_flagged": 18,
+    "shrink_cmp_03_apeglm_n_nan_prefit": 0
+  },
+  "provenance": {
+    "md_limma_sha": "f5dd3a6dda6fb31bbd5b81513c5ee275599fcb15-dirty",
+    "reference_sha256": "284515c1362341d3379798f8ac264732377401b43b822915276c324226805994",
+    "corpus_harness_sha256": "900715efed8794c10ef44d9a31f3ae95f2491fd8941c0fabaf794fc4a010dab2",
+    "md_flexi_comparisons_sha": "e56546c8bb1cca5e2674d74e79efa1fd83b8bce8",
+    "image_digest": "sha256:1ac4c785e9779f64d1331de9cbaae9b5cbc9a56f55c2b42624ac8d2aed9df482"
+  },
+  "versions": {
+    "R": "R version 4.5.0 (2025-04-11)",
+    "edgeR": "4.8.2",
+    "DESeq2": "1.50.2",
+    "limma": "3.66.0",
+    "apeglm": "1.32.0",
+    "ashr": "2.2.63",
+    "mixsqp": "0.3.54",
+    "irlba": "2.3.7"
+  }
+}

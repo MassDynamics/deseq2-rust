@@ -407,7 +407,7 @@ fn expected_errors_match_reference() {
     }
     assert_eq!(n, 3);
     // The non-integer guard (MDFlexi .buildCountMatrixFromLongDT).
-    let mut inp = engine_input("count_deseq2_airway_all_ctlnone");
+    let mut inp = engine_input("count_deseq2_airway_all_ctlfactor");
     inp.counts[0] += 0.5;
     let e = run_deseq2_diag(&inp).err().unwrap();
     assert!(e.contains("Non-integer values detected"), "{e}");

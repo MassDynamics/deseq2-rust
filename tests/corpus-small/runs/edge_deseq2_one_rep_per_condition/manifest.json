@@ -1,0 +1,101 @@
+{
+  "id": "edge_deseq2_one_rep_per_condition",
+  "description": "One replicate per condition (no residual df)",
+  "dataset": "count_synth",
+  "entity_type": "gene",
+  "mode": "discovery",
+  "params": {
+    "comparison_type": "all",
+    "custom_comparisons": null,
+    "control_cols": null,
+    "fit_separate_models": false,
+    "filter_logic": "one_condition",
+    "filter_criteria": "percentage",
+    "filter_threshold": 0,
+    "limma_trend": true,
+    "limma_robust": true,
+    "return_decide_test_column": true,
+    "transform": "one_rep_per_condition",
+    "gene_shim": true,
+    "condition_col": "condition",
+    "de_method": "DESeq2",
+    "edger_norm_method": "TMM",
+    "deseq2_lfc_shrinkage": "none",
+    "deseq2_alpha": 0.05,
+    "apeglm_seed": 1
+  },
+  "expected_error": "same number of samples and coefficients",
+  "boundary_sensitive": false,
+  "notes": "Production fails here. edgeR warns 'No residual df: setting dispersion to NA' and then crashes on an unguarded NA test; DESeq2 refuses to estimate dispersion without replicates.",
+  "shared_inputs_dir": "shared/count_synth__one_rep_per_condition",
+  "lc_collate": "C",
+  "r_version": "R version 4.5.0 (2025-04-11)",
+  "package_versions": {
+    "MDFlexiComparisons": "sourced directly from R/*.R (not installed as a package); no DESCRIPTION Version field consulted",
+    "limma": "3.66.0",
+    "Biobase": "2.70.0",
+    "SummarizedExperiment": "1.40.0",
+    "data.table": "1.18.6.1",
+    "edgeR": "4.8.2",
+    "DESeq2": "1.50.2",
+    "apeglm": "1.32.0",
+    "ashr": "2.2.63",
+    "mixsqp": "0.3.54",
+    "statmod": "1.5.2",
+    "locfit": "1.5.9.12",
+    "bioconductor": "3.22"
+  },
+  "blas": "/usr/local/lib64/R/lib/libRlapack.so",
+  "provenance": {
+    "md_flexi_comparisons_sha": "e56546c8bb1cca5e2674d74e79efa1fd83b8bce8",
+    "image_digest": "sha256:1ac4c785e9779f64d1331de9cbaae9b5cbc9a56f55c2b42624ac8d2aed9df482",
+    "harness_sha256": "900715efed8794c10ef44d9a31f3ae95f2491fd8941c0fabaf794fc4a010dab2",
+    "platform": "x86_64-pc-linux-gnu",
+    "lc_ctype": "C.UTF-8",
+    "libc": "ldd (GNU libc) 2.34",
+    "lapack": "3.12.1",
+    "versions_status": "confirmed"
+  },
+  "tolerance_policy": {
+    "continuous": {
+      "kind": "rel",
+      "value": 1e-08,
+      "columns": "Log2FC, SE, stat, F, CI, CrI, AveExpr, PValue, AdjPValue"
+    },
+    "edger_f_floor": {
+      "kind": "abs",
+      "value": 1e-08,
+      "columns": "F where |F_golden| < 1e-8; then stat, SE, CILeft, CIRight NA-ness is exempt from na_pattern",
+      "note": "Port reproduces production: F < 0 gives NA stat/SE/CI (known_production_behaviour)."
+    },
+    "na_pattern": {
+      "kind": "exact",
+      "columns": "NA positions in every column, except the edger_f_floor rows"
+    },
+    "if_threshold": {
+      "kind": "exact",
+      "columns": "DESeq2 independent-filtering filtered set",
+      "note": "Enforced now as the exact set of rows with PValue present and AdjPValue NA; the numeric threshold and theta get their own golden in PR-E2."
+    },
+    "significance": {
+      "kind": "exact",
+      "columns": "AdjPValue < deseq2_alpha (DESeq2) or 0.05 (edgeR)",
+      "note": "Derived, not stored: no output carries a flag column, so the port's flag computed from its AdjPValue must equal the flag computed from the golden AdjPValue."
+    },
+    "edger_ci_df": {
+      "kind": "note",
+      "columns": "edgeR CILeft, CIRight",
+      "note": "known_production_behaviour on every edgeR discovery run: the CI uses qt(0.975, df.prior + df.residual) (edgeRStatsFun.R:227-231), not glmQLFTest's df.total. The port reproduces it."
+    },
+    "counts_ids_cols": {
+      "kind": "exact",
+      "columns": "row counts, GroupId values, column names"
+    }
+  },
+  "arrow_available": false,
+  "output_format": "rds",
+  "status": "error",
+  "actual_error": "\n\n  The design matrix has the same number of samples and coefficients to fit,\n  so estimation of dispersion is not possible. Treating samples\n  as replicates was deprecated in v1.20 and no longer supported since v1.22.\n\n",
+  "warning_text": "Column Description is not in the features metadata table and it will be added.",
+  "error_matches_expected": true
+}

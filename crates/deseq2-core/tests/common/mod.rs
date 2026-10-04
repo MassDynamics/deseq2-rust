@@ -13,6 +13,15 @@ pub fn corpus_dir() -> PathBuf {
     PathBuf::from(home).join("wd/md-count-golden-corpus")
 }
 
+/// Whether the corpus is the committed CI tier (`scripts/build_small_corpus.py`).
+pub fn is_small_tier() -> bool {
+    let small = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus-small");
+    match (corpus_dir().canonicalize(), small.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => false,
+    }
+}
+
 pub fn reference_dir(run: &str) -> PathBuf {
     corpus_dir().join("reference").join(run)
 }
@@ -156,8 +165,14 @@ pub fn deseq2_runs(file: Option<&str>) -> Vec<String> {
         .filter(|n| file.is_none_or(|f| reference_dir(n).join(f).exists()))
         .collect();
     v.sort();
-    // A shrunken corpus must not pass quietly (review r1, D-11): 39 DESeq2 runs, 35 with tables.
-    let want = if file.is_none() { 39 } else { 35 };
+    // A shrunken corpus must not pass quietly (review r1, D-11): 39 DESeq2 runs, 35 with tables;
+    // the small tier has 12 and 8.
+    let want = match (is_small_tier(), file.is_none()) {
+        (false, true) => 39,
+        (false, false) => 35,
+        (true, true) => 12,
+        (true, false) => 8,
+    };
     assert_eq!(
         v.len(),
         want,

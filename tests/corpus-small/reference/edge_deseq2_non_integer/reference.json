@@ -1,0 +1,27 @@
+{
+  "run_id": "edge_deseq2_non_integer",
+  "de_method": "DESeq2",
+  "mode": "discovery",
+  "self_check": {
+    "passed": true,
+    "kind": "expected_error",
+    "expected": "Non-integer values detected",
+    "got": "[MD_ERROR_START]Non-integer values detected in the count column. edgeR and DESeq2 require raw integer counts as input. Use de_method = 'limma' for pre-normalised or continuous data.[MD_ERROR_END]"
+  },
+  "internal_checks_pass": true,
+  "internal_checks": [],
+  "scalars": [],
+  "provenance": {
+    "md_limma_sha": "b3b8abc30ba3134514f34672dd0cd7d62074bb2b",
+    "reference_sha256": "ab755d6b46af5976cd482dc96a418efd44841ab9a16fd5f43ae6e594b3ebdd14",
+    "corpus_harness_sha256": "900715efed8794c10ef44d9a31f3ae95f2491fd8941c0fabaf794fc4a010dab2",
+    "md_flexi_comparisons_sha": "e56546c8bb1cca5e2674d74e79efa1fd83b8bce8",
+    "image_digest": "sha256:1ac4c785e9779f64d1331de9cbaae9b5cbc9a56f55c2b42624ac8d2aed9df482"
+  },
+  "versions": {
+    "R": "R version 4.5.0 (2025-04-11)",
+    "edgeR": "4.8.2",
+    "DESeq2": "1.50.2",
+    "limma": "3.66.0"
+  }
+}
