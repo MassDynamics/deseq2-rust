@@ -7,3 +7,8 @@ DEVELOPER_DIR = "/Library/Developer/CommandLineTools"
 # pyo3 extension modules resolve Python symbols at load time (what maturin passes).
 [target.aarch64-apple-darwin]
 rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
+
+# edge-rust is an internal repo: fetch it with the git CLI, so ssh keys and the CI token's
+# insteadOf rewrite (scripts/gh-token.sh) apply.
+[net]
+git-fetch-with-cli = true
