@@ -17,12 +17,12 @@ steps:
     agents:
       ebdeploy: true
 
-  # Every green main build gets a tag and a GitHub release, so consumers always have one to pin.
+  # Every green master build gets a tag and a GitHub release, so consumers always have one to pin.
   - label: ":label: tag and release"
     key: release
     depends_on: ["lint", "test"]
     command: scripts/release
-    if: 'build.branch == "main"'
+    if: 'build.branch == "master"'
     agents:
       ebdeploy: true
     concurrency: 1

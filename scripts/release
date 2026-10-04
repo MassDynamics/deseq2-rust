@@ -1,8 +1,8 @@
 #!/bin/bash
 # Tags the built commit v<version>-<build number> and publishes a GitHub release for it, so every
-# green main build has a tag to pin to. One API call creates both the tag and the release. Needs a
+# green master build has a tag to pin to. One API call creates both the tag and the release. Needs a
 # token with contents:write on this repo (scripts/gh-token.sh).
-# Usage (CI only): scripts/release
+# Usage (CI only, master): scripts/release
 set -e
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 GH_REPO=MassDynamics/deseq2-rust
