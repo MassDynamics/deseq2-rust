@@ -62,7 +62,7 @@ dependencies = [
 [[package]]
 name = "edger-core"
 version = "0.1.0"
-source = "git+file:///Users/giuseppeinfusini/wd/md-repos/edge-rust?rev=dc7bfd609b2e1d69c9d4fdf69b2b9755c3e50558#dc7bfd609b2e1d69c9d4fdf69b2b9755c3e50558"
+source = "git+file:///Users/giuseppeinfusini/wd/md-repos/edge-rust?rev=003868bdfdb03f8d963b21114e7769b76fb0d8b8#003868bdfdb03f8d963b21114e7769b76fb0d8b8"
 dependencies = [
  "rnum",
  "thiserror",
@@ -289,7 +289,7 @@ checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 [[package]]
 name = "rnum"
 version = "0.1.0"
-source = "git+file:///Users/giuseppeinfusini/wd/md-repos/edge-rust?rev=dc7bfd609b2e1d69c9d4fdf69b2b9755c3e50558#dc7bfd609b2e1d69c9d4fdf69b2b9755c3e50558"
+source = "git+file:///Users/giuseppeinfusini/wd/md-repos/edge-rust?rev=003868bdfdb03f8d963b21114e7769b76fb0d8b8#003868bdfdb03f8d963b21114e7769b76fb0d8b8"
 dependencies = [
  "thiserror",
 ]
