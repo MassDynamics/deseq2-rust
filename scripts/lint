@@ -1,0 +1,22 @@
+#!/bin/bash
+# cargo fmt, clippy and ruff in the Rust image. The tracked files are streamed into the container
+# as a tar on stdin (a bind mount comes up empty on CI agents whose Docker daemon cannot see the
+# checkout). clippy fetches edge-rust, so the step needs the token (scripts/gh-token.sh). ruff
+# comes from uv.lock without building the extension.
+# Usage: scripts/lint
+set -e
+REPO=$(cd "$(dirname "$0")/.." && pwd)
+export COPYFILE_DISABLE=1   # macOS tar: no AppleDouble ._ files in the stream
+RUST_IMAGE=rust:1.95.0      # keep equal to rust-toolchain.toml
+UV_VERSION=0.12.6
+source "$REPO/scripts/gh-token.sh"
+
+echo "--- :lint-roller: cargo fmt, clippy, ruff"
+git -C "$REPO" ls-files -z | tar -C "$REPO" --null -T - -cf - \
+  | docker run -i --rm --platform linux/amd64 "${GIT_TOKEN_ARGS[@]}" "$RUST_IMAGE" sh -c \
+    "$GIT_TOKEN_SH && mkdir /work && cd /work && tar -xf - \
+     && rustup component add rustfmt clippy \
+     && cargo fmt --all --check \
+     && cargo clippy --all-targets --locked -- -D warnings \
+     && curl -LsSf https://astral.sh/uv/$UV_VERSION/install.sh | sh \
+     && ~/.local/bin/uv run --only-dev ruff check"

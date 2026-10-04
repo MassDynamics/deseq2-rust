@@ -1,0 +1,29 @@
+env:
+  AWS_REGION: 'ap-southeast-2'
+  AWS_DEFAULT_REGION: 'ap-southeast-2'
+
+steps:
+  - label: ":lint-roller: lint"
+    key: lint
+    command: scripts/lint
+    agents:
+      ebdeploy: true
+
+  - label: ":rust: test"
+    key: test
+    command: scripts/test
+    env:
+      CORPUS_S3: "s3://md-development-benchmarking/md-limma-benchmark/md-count-golden-corpus/md-count-golden-corpus-2026-10-04.tar"
+    agents:
+      ebdeploy: true
+
+  # Every green main build gets a tag and a GitHub release, so consumers always have one to pin.
+  - label: ":label: tag and release"
+    key: release
+    depends_on: ["lint", "test"]
+    command: scripts/release
+    if: 'build.branch == "main"'
+    agents:
+      ebdeploy: true
+    concurrency: 1
+    concurrency_group: "deseq2-rust/release"
