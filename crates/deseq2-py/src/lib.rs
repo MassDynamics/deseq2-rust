@@ -8,7 +8,7 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
-use deseq2_core::engine::{max_abs_log2fc, run_deseq2_diag, Comparison, Control, DeseqInput};
+use deseq2_core::engine::{max_abs_log2fc, run_deseq2_opt, Comparison, Control, DeseqInput};
 
 /// Run `f` without the GIL. Engine errors become `ValueError`; a panic becomes `RuntimeError`
 /// instead of pyo3's `PanicException`, which derives from `BaseException` and so escapes
@@ -140,7 +140,7 @@ fn deseq2_pipeline<'py>(
         shrink: shrink.to_string(),
         entity_type: entity_type.to_string(),
     };
-    let (out, diag) = guarded(py, || run_deseq2_diag(&input))?;
+    let (out, diag) = guarded(py, || run_deseq2_opt(&input, diagnostics))?;
 
     let d = PyDict::new(py);
     d.set_item("gene_ids", out.gene_ids)?;
@@ -178,7 +178,7 @@ fn deseq2_pipeline<'py>(
         d.set_item("max_pair", max_pair)?;
         d.set_item("max_log2fc", vector(py, max_fc))?;
     }
-    if diagnostics {
+    if let Some(diag) = diag {
         let f = &diag.fit;
         let p = f.test.p();
         let nk = diag.kept_idx.len();

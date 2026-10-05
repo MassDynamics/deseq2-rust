@@ -226,11 +226,20 @@ pub fn build_design(input: &DeseqInput) -> Result<Design, String> {
 
 /// Run the engine. Errors carry the production messages (without the `md_error` markers).
 pub fn run_deseq2(input: &DeseqInput) -> Result<DeseqOutput, String> {
-    run_deseq2_diag(input).map(|(o, _)| o)
+    run_deseq2_opt(input, false).map(|(o, _)| o)
 }
 
 /// [`run_deseq2`], also returning the intermediates.
 pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), String> {
+    run_deseq2_opt(input, true).map(|(o, d)| (o, d.unwrap()))
+}
+
+/// [`run_deseq2`], returning the intermediates only when `keep_diag`, so a production run does
+/// not hold the per-pair fits and tables.
+pub fn run_deseq2_opt(
+    input: &DeseqInput,
+    keep_diag: bool,
+) -> Result<(DeseqOutput, Option<DeseqDiag>), String> {
     let ng = input.gene_ids.len();
     let m = input.sample_ids.len();
     if input.entity_type != "gene" {
@@ -309,13 +318,8 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     let ave_expr = spread(&fit.base.base_mean, &kept_idx, ng);
     let replace = fit.replacement.as_ref().map(|r| r.replace.as_slice());
 
-    let mut diag = DeseqDiag {
-        kept_idx: kept_idx.clone(),
-        fit: fit.clone(),
-        comparisons: vec![],
-        anova_lfc: vec![],
-        omnibus: None,
-    };
+    let mut comparisons = vec![];
+    let mut anova_lfc = vec![];
 
     if input.anova {
         let data = ResultsData {
@@ -343,7 +347,9 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
                 format!("{} - {}", c.left, c.right),
                 spread(&r.lfc, &kept_idx, ng),
             ));
-            diag.anova_lfc.push(r);
+            if keep_diag {
+                anova_lfc.push(r);
+            }
         }
         let om = results(&data, &Which::Last, true, input.alpha)?;
         let anova = AnovaColumns {
@@ -352,7 +358,6 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
             pvalue: spread(&om.pvalue, &kept_idx, ng),
             adj_pvalue: spread(&om.padj, &kept_idx, ng),
         };
-        diag.omnibus = Some(om);
         let out = DeseqOutput {
             gene_ids: input.gene_ids.clone(),
             kept: fb.keep.clone(),
@@ -360,6 +365,13 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
             pairs: vec![],
             anova: Some(anova),
         };
+        let diag = keep_diag.then_some(DeseqDiag {
+            kept_idx,
+            fit,
+            comparisons,
+            anova_lfc,
+            omnibus: Some(om),
+        });
         return Ok((out, diag));
     }
 
@@ -371,10 +383,10 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     }
     let qn = rnum::nmath::qnorm(0.975, 0.0, 1.0, true, false);
     let mut pairs = Vec::new();
-    // The relevel refit depends only on the reference level, so pairs sharing one reuse the
-    // first such pair's fit, held in `diag.comparisons` at the index recorded here.
-    let mut refit_by_ref: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
-    for (i, c) in input.comparisons.iter().enumerate() {
+    // The relevel refit depends only on the reference level, so pairs sharing one reuse it.
+    let mut refit_by_ref: std::collections::HashMap<&str, TestFit> =
+        std::collections::HashMap::new();
+    for c in &input.comparisons {
         let left = &c.encoded_left;
         let right = &c.encoded_right;
         // The dispatch-contrast results() call production makes first fails on these.
@@ -387,23 +399,21 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
                 .ok_or("'ref' must be an existing level")?;
             let mut d2 = design.clone();
             d2.vars[0] = Var::Factor(f2);
-            let t = match refit_by_ref.get(right.as_str()) {
-                Some(&k) => diag.comparisons[k].relevel_fit.clone().unwrap(),
-                None => {
-                    refit_by_ref.insert(right, i);
-                    nbinom_test(
-                        &fit.counts,
-                        &fit.sf,
-                        &fit.base.all_zero,
-                        &fit.disp.dispersion,
-                        &d2,
-                        false,
-                    )?
-                }
-            };
-            (t.clone(), d2, Some(t))
+            if !refit_by_ref.contains_key(right.as_str()) {
+                let t = nbinom_test(
+                    &fit.counts,
+                    &fit.sf,
+                    &fit.base.all_zero,
+                    &fit.disp.dispersion,
+                    &d2,
+                    false,
+                )?;
+                refit_by_ref.insert(right, t);
+            }
+            let t = &refit_by_ref[right.as_str()];
+            (t, d2, keep_diag.then(|| t.clone()))
         } else {
-            (fit.test.clone(), design.clone(), None)
+            (&fit.test, design.clone(), None)
         };
         let coef_name = format!("{}_{}_vs_{}", input.condition_col, left, right);
         if !test.coef_names.contains(&coef_name) {
@@ -416,7 +426,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         let coef_k = test.coef_index(&coef_name).unwrap();
         let data = ResultsData {
             design: &des,
-            test: &test,
+            test,
             base_mean: &fit.base.base_mean,
             all_zero: &fit.base.all_zero,
             replace,
@@ -430,7 +440,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         let nk = r.lfc.len();
         let ci_l: Vec<f64> = (0..nk).map(|g| r.lfc[g] - qn * r.se[g]).collect();
         let ci_r: Vec<f64> = (0..nk).map(|g| r.lfc[g] + qn * r.se[g]).collect();
-        let mut cd = ComparisonDiag {
+        let mut cd = keep_diag.then(|| ComparisonDiag {
             design: des.clone(),
             relevel_fit,
             results: r.clone(),
@@ -438,7 +448,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
             normal_results: None,
             shrunk: None,
             shrink_nonconverged: None,
-        };
+        });
         let shrunk: Option<ShrunkCols> = match shrink {
             "normal" => {
                 let ns = shrink_normal(
@@ -449,7 +459,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
                     &fit.base.base_mean,
                     &fit.disp.fit,
                     &des,
-                    &test,
+                    test,
                 )?;
                 let mut ts = test.clone();
                 ts.beta = ns.beta.clone();
@@ -459,8 +469,10 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
                 let lo = (0..nk).map(|g| rs.lfc[g] - qn * rs.se[g]).collect();
                 let hi = (0..nk).map(|g| rs.lfc[g] + qn * rs.se[g]).collect();
                 let s = (rs.lfc.clone(), rs.se.clone(), lo, hi);
-                cd.normal = Some(ns);
-                cd.normal_results = Some(rs);
+                if let Some(cd) = cd.as_mut() {
+                    cd.normal = Some(ns);
+                    cd.normal_results = Some(rs);
+                }
                 Some(s)
             }
             "ashr" => {
@@ -486,7 +498,9 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
                     &r.se,
                 )
                 .map_err(|e| e.to_string())?;
-                cd.shrink_nonconverged = Some(count_nonconverged(&a.diag_conv));
+                if let Some(cd) = cd.as_mut() {
+                    cd.shrink_nonconverged = Some(count_nonconverged(&a.diag_conv));
+                }
                 Some((a.log2_fold_change, a.lfc_se, a.cri_left, a.cri_right))
             }
             _ => None,
@@ -494,7 +508,9 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         let nan = vec![f64::NAN; nk];
         let (lfc, se, cr_l, cr_r) = match shrunk {
             Some((l, s, lo, hi)) => {
-                cd.shrunk = Some((l.clone(), s.clone()));
+                if let Some(cd) = cd.as_mut() {
+                    cd.shrunk = Some((l.clone(), s.clone()));
+                }
                 (l, s, lo, hi)
             }
             None => (r.lfc.clone(), r.se.clone(), nan.clone(), nan),
@@ -512,7 +528,7 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
             pvalue: sp(&r.pvalue),
             adj_pvalue: sp(&r.padj),
         });
-        diag.comparisons.push(cd);
+        comparisons.extend(cd);
     }
     let out = DeseqOutput {
         gene_ids: input.gene_ids.clone(),
@@ -521,6 +537,13 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
         pairs,
         anova: None,
     };
+    let diag = keep_diag.then_some(DeseqDiag {
+        kept_idx,
+        fit,
+        comparisons,
+        anova_lfc,
+        omnibus: None,
+    });
     Ok((out, diag))
 }
 
