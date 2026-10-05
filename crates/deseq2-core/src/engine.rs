@@ -371,7 +371,10 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
     }
     let qn = rnum::nmath::qnorm(0.975, 0.0, 1.0, true, false);
     let mut pairs = Vec::new();
-    for c in &input.comparisons {
+    // The relevel refit depends only on the reference level, so pairs sharing one reuse the
+    // first such pair's fit, held in `diag.comparisons` at the index recorded here.
+    let mut refit_by_ref: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for (i, c) in input.comparisons.iter().enumerate() {
         let left = &c.encoded_left;
         let right = &c.encoded_right;
         // The dispatch-contrast results() call production makes first fails on these.
@@ -384,14 +387,20 @@ pub fn run_deseq2_diag(input: &DeseqInput) -> Result<(DeseqOutput, DeseqDiag), S
                 .ok_or("'ref' must be an existing level")?;
             let mut d2 = design.clone();
             d2.vars[0] = Var::Factor(f2);
-            let t = nbinom_test(
-                &fit.counts,
-                &fit.sf,
-                &fit.base.all_zero,
-                &fit.disp.dispersion,
-                &d2,
-                false,
-            )?;
+            let t = match refit_by_ref.get(right.as_str()) {
+                Some(&k) => diag.comparisons[k].relevel_fit.clone().unwrap(),
+                None => {
+                    refit_by_ref.insert(right, i);
+                    nbinom_test(
+                        &fit.counts,
+                        &fit.sf,
+                        &fit.base.all_zero,
+                        &fit.disp.dispersion,
+                        &d2,
+                        false,
+                    )?
+                }
+            };
             (t.clone(), d2, Some(t))
         } else {
             (fit.test.clone(), design.clone(), None)
