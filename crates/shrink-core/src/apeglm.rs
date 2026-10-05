@@ -29,6 +29,7 @@ use crate::dense::{getrf, getrs, rcond_from_lu, Mat};
 use crate::eigen;
 use crate::xld::{r_cumsum, r_sum};
 use crate::ShrinkError;
+use rayon::prelude::*;
 use rnum::glibm;
 use rnum::glibm_log1p::log1p;
 use rnum::lbfgsb::{optim_bfgs, optimhess, OptimControl};
@@ -622,6 +623,17 @@ pub fn svalue(lfsr: &[f64]) -> Vec<f64> {
     out
 }
 
+/// One gene's fit in [`shrink_apeglm`]; `sdv` is `None` when the covariance diagonal is not
+/// positive.
+struct RowOut {
+    prefit: PrefitRow,
+    rp: RowPass,
+    par: Vec<f64>,
+    sdv: Option<Vec<f64>>,
+    dconv: f64,
+    dcount: f64,
+}
+
 /// `lfcShrink(dds, coef, type = "apeglm")` from the unshrunken fit, as plain arrays:
 ///
 /// - `counts`: `G x n` raw counts; `size_factors`: length `n`; `dispersions`: length `G`.
@@ -702,10 +714,13 @@ pub fn shrink_apeglm(
     let qn = qnorm((1.0 - 0.95) / 2.0, 0.0, 1.0, false, false);
     let ctl = OptimControl::default();
 
-    for i in 0..g {
+    // Genes are fitted independently, so they run on rayon's pool and are written back in gene
+    // order; the first error in gene order is returned, as in a sequential loop. The pool size
+    // comes from `available_parallelism`, which follows the container's cgroup CPU limit.
+    let fit_row = |i: usize| -> Result<Option<RowOut>, ShrinkError> {
         let y = &ys[i];
         if r_sum(y.iter().copied()) <= 0.0 {
-            continue;
+            return Ok(None);
         }
         let row = NbRow {
             x: design,
@@ -734,14 +749,14 @@ pub fn shrink_apeglm(
         }
         let conv = if delta > 0.01 { -1 } else { fit1.status };
         let prefit_beta = fit1.x.clone();
-        prefit[i] = Some(PrefitRow {
+        let prefit = PrefitRow {
             cnst_raw,
             cnst,
             fit1,
             fit2,
             delta,
             conv,
-        });
+        };
 
         // optimNbinomHess
         let nan_prefit = prefit_beta.iter().any(|v| v.is_nan());
@@ -805,29 +820,45 @@ pub fn shrink_apeglm(
             (init, hess.unwrap(), 0.0, f64::NAN)
         };
         rp.final_hess = final_hess.clone();
-        for k in 0..p {
-            map.set(i, k, par[k]);
-        }
         let inv = r_solve(&Mat::from_col_major(p, p, final_hess))?;
         let cov_diag: Vec<f64> = (0..p).map(|k| -inv.at(k, k)).collect();
-        rows[i] = Some(rp);
         if cov_diag.iter().any(|x| x.is_nan()) {
             return Err(ShrinkError::Numerical(
                 "missing value where TRUE/FALSE needed (cov.mat)".into(),
             ));
         }
-        if cov_diag.iter().any(|&x| x <= 0.0) {
-            continue;
+        let sdv = if cov_diag.iter().any(|&x| x <= 0.0) {
+            None
+        } else {
+            Some(cov_diag.iter().map(|x| x.sqrt()).collect())
+        };
+        Ok(Some(RowOut {
+            prefit,
+            rp,
+            par,
+            sdv,
+            dconv,
+            dcount,
+        }))
+    };
+    let outs: Vec<_> = (0..g).into_par_iter().map(fit_row).collect();
+    for (i, out) in outs.into_iter().enumerate() {
+        let Some(o) = out? else { continue };
+        prefit[i] = Some(o.prefit);
+        rows[i] = Some(o.rp);
+        let par = o.par;
+        for k in 0..p {
+            map.set(i, k, par[k]);
         }
-        let sdv: Vec<f64> = cov_diag.iter().map(|x| x.sqrt()).collect();
+        let Some(sdv) = o.sdv else { continue };
         for k in 0..p {
             sd.set(i, k, sdv[k]);
         }
         interval_lo[i] = par[coef] - qn * sdv[coef];
         interval_hi[i] = par[coef] + qn * sdv[coef];
         fsr[i] = pnorm(-par[coef].abs(), 0.0, sdv[coef], true, false);
-        diag_conv[i] = dconv;
-        diag_count[i] = dcount;
+        diag_conv[i] = o.dconv;
+        diag_count[i] = o.dcount;
     }
     let sval = svalue(&fsr);
     let l2e = std::f64::consts::LOG2_E;

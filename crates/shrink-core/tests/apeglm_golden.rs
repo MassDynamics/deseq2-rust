@@ -378,3 +378,54 @@ fn apeglm_matches_r() {
         "apeglm comparisons on disk against index.json"
     );
 }
+
+/// The per-gene fits run on rayon's pool; the result must not depend on the thread count.
+#[test]
+fn apeglm_same_bits_at_any_thread_count() {
+    let runs = runs("_shrink_apeglm");
+    assert!(!runs.is_empty(), "no apeglm runs (set MD_COUNT_CORPUS_DIR)");
+    let bits = |v: &[f64]| v.iter().map(|x| x.to_bits()).collect::<Vec<u64>>();
+    for run in &runs {
+        let name = run.file_name().unwrap().to_string_lossy().into_owned();
+        for cmp in cmps(run, "apeglm") {
+            let inp = load(run, &cmp);
+            let coef = inp.design.ncol - 1;
+            let fit_on = |threads: usize| {
+                let pool = rayon::ThreadPoolBuilder::new()
+                    .num_threads(threads)
+                    .build()
+                    .unwrap();
+                pool.install(|| {
+                    shrink_apeglm(
+                        &inp.counts,
+                        &inp.sf,
+                        &inp.disp,
+                        &inp.design,
+                        coef,
+                        &inp.mle,
+                        &inp.se,
+                    )
+                })
+                .unwrap_or_else(|e| panic!("{name}/{cmp}: {e}"))
+            };
+            let (a, b) = (fit_on(1), fit_on(4));
+            for (col, x, y) in [
+                ("map", &a.map.data, &b.map.data),
+                ("sd", &a.sd.data, &b.sd.data),
+                ("svalue", &a.svalue, &b.svalue),
+                ("diag_conv", &a.diag_conv, &b.diag_conv),
+                ("diag_count", &a.diag_count, &b.diag_count),
+                ("log2_fold_change", &a.log2_fold_change, &b.log2_fold_change),
+                ("lfc_se", &a.lfc_se, &b.lfc_se),
+                ("cri_left", &a.cri_left, &b.cri_left),
+                ("cri_right", &a.cri_right, &b.cri_right),
+            ] {
+                assert_eq!(
+                    bits(x),
+                    bits(y),
+                    "{name}/{cmp}: {col} differs at 1 vs 4 threads"
+                );
+            }
+        }
+    }
+}
