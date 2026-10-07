@@ -638,6 +638,12 @@ for (nm in c("RLE", "upperquartile", "none")) {
 count_runs[["count_edger_airway_norm_RLE"]] <- mk_count(
   "count_edger_airway_norm_RLE", "edgeR airway, calcNormFactors(method=RLE)", "airway", "edgeR",
   edger_norm_method = "RLE")
+# Golden corpus audit: the non-TMM norm methods under the ANOVA omnibus test.
+for (nm in c("RLE", "upperquartile", "none")) {
+  id <- sprintf("count_edger_anova_norm_%s", nm)
+  count_runs[[id]] <- mk_count(id, sprintf("edgeR ANOVA, calcNormFactors(method=%s)", nm), "count_synth",
+                               "edgeR", mode = "anova", edger_norm_method = nm)
+}
 
 # 4c. Edge cases, both engines unless the case is engine-specific.
 for (eng in c("edgeR", "DESeq2")) {
